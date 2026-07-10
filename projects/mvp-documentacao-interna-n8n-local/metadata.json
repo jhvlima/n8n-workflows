@@ -1,0 +1,45 @@
+{
+  "workflowId": "6ckt8NIDx0j2WjMf",
+  "title": "MVP - Documentação Interna n8n (Local)",
+  "summary": "Resumo pendente de revisão humana.",
+  "owner": "PENDENTE",
+  "criticality": "PENDENTE",
+  "tags": [
+    "docs-internal"
+  ],
+  "triggers": [
+    "Respond with markdown",
+    "Respond with HTML",
+    "Respond with main page HTML",
+    "Respond OK on Save",
+    "single workflow",
+    "docsify"
+  ],
+  "integrations": [
+    "chainLlm",
+    "code",
+    "convertToFile",
+    "executeCommand",
+    "extractFromFile",
+    "html",
+    "if",
+    "lmChatOpenAi",
+    "merge",
+    "n8n",
+    "noOp",
+    "outputParserAutofixing",
+    "outputParserStructured",
+    "readWriteFile",
+    "respondToWebhook",
+    "set",
+    "sort",
+    "stickyNote",
+    "switch",
+    "webhook"
+  ],
+  "nodeCount": 60,
+  "connectionGroups": 43,
+  "sourceUpdatedAt": "2026-07-10T15:21:12.134Z",
+  "reviewStatus": "draft",
+  "hash": "41286edb"
+}
