@@ -1,0 +1,1958 @@
+{
+  "name": "MVP - Documentação Interna n8n (Local)",
+  "nodes": [
+    {
+      "id": "c738eed8-d2ab-4d74-9d4d-e9a07fb8918b",
+      "name": "CONFIG",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        9744,
+        5616
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b48986ec-f58d-4a7f-afba-677edcb28d31",
+              "name": "project_path",
+              "type": "string",
+              "value": "./.n8n/project_docs"
+            },
+            {
+              "id": "cf632419-f839-4045-922c-03784bb3ae07",
+              "name": "instance_url",
+              "type": "string",
+              "value": "https://internal.example"
+            },
+            {
+              "id": "7a7c70a6-1853-4ca7-b5b1-e36bb0e190d0",
+              "name": "HTML_headers",
+              "type": "string",
+              "value": "=    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge,chrome=1\" />\n    <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n    <meta charset=\"UTF-8\" />\n    <link rel=\"stylesheet\" href=\"//cdn.jsdelivr.net/npm/docsify@4/themes/vue.css\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js\"></script>"
+            },
+            {
+              "id": "1e785afe-f05f-4e51-a164-f341da81ccac",
+              "name": "HTML_styles_editor",
+              "type": "string",
+              "value": "=    <style>\n      body {\n        margin: 0;\n        padding: 0;\n        overflow: hidden;\n      }\n      \n      .container {\n        display: flex;\n        flex-direction: column;\n        height: 100vh;\n        margin: 0;\n      }\n\n      .button-container {\n        display: flex;\n        justify-content: center;\n        gap: 10px;\n        padding: 10px;\n        background: #f8f8f8;\n        border-bottom: 1px solid #eee;\n        width: 50%;\n      }\n\n      .button {\n        padding: 8px 16px;\n        border: none;\n        border-radius: 4px;\n        cursor: pointer;\n        font-size: 14px;\n      }\n\n      .save-button {\n        background: #42b983;\n        color: white;\n      }\n\n      .cancel-button {\n        background: #666;\n        color: white;\n      }\n\n      .editor-preview-container {\n        display: flex;\n        flex: 1;\n        overflow: hidden;\n      }\n      \n      #editor {\n        width: 50%;\n        height: 100%;\n        resize: none;\n        padding: 20px;\n        box-sizing: border-box;\n        font-family: monospace;\n        border: none;\n        border-right: 1px solid #eee;\n      }\n      \n      .preview-container {\n        width: 50%;\n        height: 100%;\n        overflow-y: auto;\n      }\n\n      /* Remove width from main */\n      main {\n        width: auto !important;\n      }\n\n      /* Fix code block wrapping */\n      .markdown-section pre > code {\n        white-space: pre-wrap !important;\n      }\n    </style>"
+            },
+            {
+              "id": "37e22865-7b6b-438d-83a0-dc680d4775cc",
+              "name": "HTML_docsify_include",
+              "type": "string",
+              "value": "=    <script src=\"//cdn.jsdelivr.net/npm/docsify@4\"></script>"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "6cd51ee5-9c61-4126-aa99-6962942c5c32",
+      "name": "Convert to File",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        13104,
+        7152
+      ],
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "workflowdata",
+        "options": {}
+      }
+    },
+    {
+      "id": "ff5edb06-ee40-4b5c-8279-054a889c6f1a",
+      "name": "HasFile?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        11488,
+        6432
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "2d9feb22-49d1-4354-9b0b-b82da2b20678",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              },
+              "leftValue": "={{ Object.keys($json).length }}",
+              "rightValue": 0
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ccf77e6c-70c4-4e5d-b326-2c6b46732425",
+      "name": "Extract from File",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        11744,
+        6416
+      ],
+      "parameters": {
+        "operation": "text",
+        "destinationKey": "workflowdata",
+        "options": {}
+      }
+    },
+    {
+      "id": "84515279-8322-4de7-b676-fe0dcf39c9a5",
+      "name": "Main Page",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        13744,
+        5456
+      ],
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html>\n  <head>\n{{ $('CONFIG').first().json.HTML_headers }}\n  <body>\n    <div data-app id=\"main\">Please wait...</div>\n    <script>\n      \n      mermaid.initialize({\n        startOnLoad: false,\n      });\n      let svgCounter = 0;\n\n      window.$docsify = {\n        el: '#main',\n        auto2top: true,\n        loadSidebar: 'summary.md',\n        basePath: '{{ $json.webhookUrl.split($json.webhookUrl.extractDomain())[1] }}/',\n        name: 'All Workflows',\n        markdown: {\n          renderer: {\n            code(code, lang) {\n              if (lang === \"mermaid\") {\n                const svgName = `mermaid-svg-${svgCounter++}`;\n                const MERMAID_CONTAINER_ID = `${svgName}-container`;\n                mermaid.render(svgName, code).then(({ svg }) => {\n                  const containerElement = document.querySelector(\n                    `#${MERMAID_CONTAINER_ID}`\n                  );\n                  if (containerElement) {\n                    containerElement.innerHTML = svg;\n                  } else {\n                    console.error(`Error: #${MERMAID_CONTAINER_ID} not found`);\n                  }\n                });\n                return `<div class=\"mermaid\" id=\"${MERMAID_CONTAINER_ID}\"></div>`;\n              }\n              return this.origin.code.apply(this, arguments);\n            },\n          },\n        },        \n        plugins: [\n          function(hook, vm) {\n            hook.ready(function() {\n              // Check if URL doesn't end with slash but also isn't a file path\n              if (!window.location.pathname.endsWith('/') && !window.location.pathname.includes('.')) {\n                // Use history.replaceState to avoid adding to browser history\n                const newUrl = window.location.pathname + '/' + window.location.hash;\n                window.history.replaceState(null, null, newUrl);\n              }\n            });\n          }\n        ],        \n      };\n    </script>\n{{ $('CONFIG').first().json.HTML_docsify_include }}\n  </body>\n</html>"
+      }
+    },
+    {
+      "id": "eb89b275-8952-44d7-85b4-638f756e177d",
+      "name": "Instance overview",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        13744,
+        5712
+      ],
+      "executeOnce": true,
+      "parameters": {
+        "html": "# Your n8n instance workflows:\n\n| Workflow | Status | Docs | Created | Updated | Nodes | Triggers |\n|----------|:------:|------|---------|---------|-------|----------|\n{{ $jmespath($input.all(),'[].json.content').join('\\n') }}"
+      }
+    },
+    {
+      "id": "cbc3d2ba-cea8-4980-9b1f-d339c7ee8e13",
+      "name": "Sort-workflows",
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        11168,
+        5712
+      ],
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "updatedAt",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "9f2b47fc-6884-41ab-bb83-efdcb9856668",
+      "name": "doc action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        10816,
+        6624
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "ee386c7d-1abe-4864-bb3a-a19d3816c906",
+                    "operator": {
+                      "name": "filter.operator.equals",
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.query.action }}",
+                    "rightValue": "view"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "view"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "aa1a33ee-ac38-4ea4-9a4c-d355e7de1312",
+                    "operator": {
+                      "name": "filter.operator.equals",
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.query.action }}",
+                    "rightValue": "edit"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "edit"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "676c36e1-4c88-4314-9317-abc877ff3d17",
+                    "operator": {
+                      "name": "filter.operator.equals",
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.query.action }}",
+                    "rightValue": "recreate"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "recreate"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "164314cf-7d99-4716-9949-b9196ce47959",
+                    "operator": {
+                      "name": "filter.operator.equals",
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.query.action }}",
+                    "rightValue": "save"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "save"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "18ae7e56-822b-4ad6-a644-36d7b117d7ad",
+      "name": "Empty Set",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        11088,
+        6512
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "eab3108b-ccf7-488f-aa05-42f4698755eb",
+      "name": "Load Doc File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        10976,
+        6416
+      ],
+      "parameters": {
+        "fileSelector": "={{ $('CONFIG').first().json.project_path }}/{{ $json.params.file }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "6b0ee6ef-0234-4909-b703-060053eea1e6",
+      "name": "Respond with markdown",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        14000,
+        6592
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/markdown"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "02971285-d1fe-42ab-8350-3433a9ae6a6c",
+      "name": "Respond with HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        14000,
+        6416
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "76387332-4696-4f81-afea-dc3a5d6f087a",
+      "name": "Save New Doc File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        13264,
+        7152
+      ],
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $('CONFIG').first().json.project_path }}/{{ $('CONFIG').first().json.params.file }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "29098da0-5258-4c27-8abc-5cdb6cd2604c",
+      "name": "Blank Doc File",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        13088,
+        6624
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b168d9b1-1a13-4915-b59b-8a17258fd9cc",
+              "name": "workflowdata",
+              "type": "string",
+              "value": "=# {{ $json.name }}\n\n## Workflow Description\n!> Please write what is this workflow doing\n\n## Workflow schematic\n\n```mermaid\n{{ $json.mermaidChart }}\n```\n\n## Any further information\n\n> You can also add tables like this:\n\n| Parameter | Value |\n|-----------|-------|\n| Created | {{ $json.createdAt }} |\n| Last updated | {{ $json.updatedAt }} |\n| Author | {{ $json.shared[0].project.name }} |\n\n"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "bea5c526-e551-4599-9dfa-78003834cadb",
+      "name": "Fetch Single Workflow1",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        11904,
+        6752
+      ],
+      "parameters": {
+        "operation": "get",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('CONFIG').first().json.params.file.replaceAll('docs_','').split('.md')[0] }}"
+        },
+        "requestOptions": {}
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "N8NAPI_CREDENTIAL_ID",
+          "name": "N8NAPI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "dd5ad62d-ae61-4ae5-89e7-a51a78b5c32f",
+      "name": "Fill Workflow Table",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        11360,
+        5712
+      ],
+      "executeOnce": false,
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3bed44f3-7fa6-4d28-8a6e-7074ca354cd6",
+              "name": "content",
+              "type": "string",
+              "value": "=| [{{ `${$json.name.replace(/[|\\\\[\\]`_*{}()<>#+-]/g, '\\\\$&')}` }}]({{ `${$('CONFIG').first().json.instance_url}/workflow/${$json.id}` }} \"Click to open workflow in n8n\") | {{ $json.active ? '[:green_circle:](# \"Active\")' : '[:white_circle:](# \"Inactive\")' }} | <nobr>[:book:]({{ `docs_${$json.id}?action=view` }} \"View docs\") [:memo:]({{ `docs_${$json.id}.md?action=edit` }} \":ignore Edit\") [:arrows_counterclockwise:]({{ `docs_${$json.id}?action=recreate` }} \"Recreate docs\")</nobr> | <nobr>{{ `${new Date($json.createdAt).toISOString().replace('T', ' ').slice(0, 16)}` }}</nobr> | <nobr>{{ `${new Date($json.updatedAt).toISOString().replace('T', ' ').slice(0, 16)}` }}</nobr> | {{ $json.nodes.length }} | {{ $json.nodes.filter(n => n.type.includes('Trigger')).length }} |"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7405d22e-9ebc-4c00-b2df-69486b43b51e",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        12560,
+        6752
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here's the workflow data:\n{{Object.assign(\n  Object.fromEntries(Object.entries($json).filter(([key]) => !['staticData', 'pinData'].includes(key))),\n  {nodes: $json.nodes.map(node => Object.fromEntries(Object.entries(node).filter(([key]) => !['id', 'position'].includes(key))))}\n).toJsonString() }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Your task is to generate simple workflow documentation for the n8n workflows. The user will provide a JSON structure. Reply \nin JSON format in 2 sections: workflow_desription and nodes_settings. Important! Each json key should be a simple markdown text without any additional comments or remarks from your end.\n\nInstruction for `workflow_desription`:\n```\n## Section header with H2\n\\n\n> subline with who created workflow and when, when it was last edited and the status (active / inactive as the green / grey round emoji). Also, when the documentation was generated. Now is: {{ $now }}.\n\\n\\n\nShould contain a description of the workflow. in a couple of paragraphs. Use direct voice without the fluff\n```\n\nInstruction for `nodes_settings`:\n```\n## Section header with H2.\n\\n\n### Node 1 name as H3 title\n  - For each node make a bullet list with the main node configs. Ignore irrelevant configs. Enclose each config value in code backticks (`). Look:\n  - Parameter 1 name: `Parameter 1 value`\n  - Parameter 2 name: `Parameter 2 value`\n\\n\\n\n### Node 2 name as H3 title\n  - For each node make a bullet list with the main node configs. Ignore irrelevant configs. Enclose each config value in code backticks (`). Look:\n  - Parameter 1 name: `Parameter 1 value`\n  - Parameter 2 name: `Parameter 2 value`\n\\n\\n\n```"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "95407cff-478d-45da-82d9-397c41217c95",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        12560,
+        6912
+      ],
+      "parameters": {
+        "model": "gpt-4-turbo",
+        "options": {
+          "temperature": 0.2,
+          "timeout": 120000
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAIAPI_CREDENTIAL_ID",
+          "name": "OPENAIAPI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "f2a9fe0f-738c-40fa-abce-1424fc7eaf0a",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        12896,
+        6912
+      ],
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"workflow_description\": \"## Workflow overview\\n\\n>some additiona info\\n\\nWorkflow desctiption\",\n\t\"nodes_settings\": \"## Nodes settings\\n\\n###Node name 1\\n\\n-  Setting 1\\n-  Setting 2###Node name 2\\n\\n-  Setting 1\\n-  Setting 2\"\n}"
+      }
+    },
+    {
+      "id": "ed2cf478-fae6-4b02-848a-13ee9314c827",
+      "name": "Auto-fixing Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        12656,
+        6912
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "eb9450ce-4fdd-442d-873e-16d078147cee",
+      "name": "Respond with main page HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        14000,
+        5456
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "2ffb5785-1fa3-4b90-b384-56d3fbdb4901",
+      "name": "Workflow Tags",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        13744,
+        6048
+      ],
+      "executeOnce": true,
+      "parameters": {
+        "html": "- **Click to filter by tag:**\n{{ [...new Set($jmespath($input.all(),'[].json.tags[].name'))].map(tag => `- [${tag}](tag-${encodeURIComponent(tag)})`).join('\\n') }}"
+      }
+    },
+    {
+      "id": "1ce5a36c-8201-465a-9465-62972dd5d318",
+      "name": "Fallback file name",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        13744,
+        7456
+      ],
+      "parameters": {
+        "html": "> File: {{ $json.params.file }}"
+      }
+    },
+    {
+      "id": "ee99b15d-9985-4167-8ea2-08eeef9d6766",
+      "name": "mkdir",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        11184,
+        6608
+      ],
+      "parameters": {
+        "command": "=mkdir -p {{$('CONFIG').first().json.project_path}}"
+      }
+    },
+    {
+      "id": "1fbda2e2-c5ad-4f0c-bea0-b985d1302b38",
+      "name": "Merge1",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        11328,
+        6432
+      ],
+      "parameters": {
+        "mode": "chooseBranch"
+      }
+    },
+    {
+      "id": "b41c3f65-45e4-431e-aa6f-7255f4769be6",
+      "name": "Edit Page",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        13744,
+        6416
+      ],
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html>\n  <head>\n{{ $('CONFIG').first().json.HTML_headers }}\n{{ $('CONFIG').first().json.HTML_styles_editor }}\n  </head>\n  <body>\n    <div class=\"container\">\n      <div class=\"button-container\">\n        <button class=\"button save-button\" onclick=\"saveContent()\">Save</button>\n        <button class=\"button cancel-button\" onclick=\"closeWindow()\">Cancel</button>\n      </div>\n      <div class=\"editor-preview-container\">\n        <textarea id=\"editor\">{{ $json.workflowdata }}</textarea>\n        <div class=\"preview-container\">\n          <div id=\"preview\"></div>\n        </div>\n      </div>\n    </div>\n    \n<script>\n  const editor = document.getElementById('editor');\n  let vm;\n\n      mermaid.initialize({\n        startOnLoad: false,\n      });\n\n      let svgCounter = 0;\n\n      // Function to save content\n      async function saveContent() {\n        try {\n          const response = await fetch(window.location.pathname + '?action=save', {\n            method: 'POST',\n            headers: {\n              'Content-Type': 'application/json',\n            },\n            body: JSON.stringify({\n              content: editor.value\n            })\n          });\n          \n          if (response.ok) {\n            alert('Successfully saved!');\n          } else {\n            alert('Failed to save content');\n          }\n        } catch (error) {\n          console.error('Error saving content:', error);\n          alert('Error saving content');\n        }\n      }\n  \n      // Function to close window\n      function closeWindow() {\n        window.close();\n      }\n   \n  window.$docsify = {\n    el: '#preview',\n    loadSidebar: false,\n    loadNavbar: false,\n    basePath: '/',\n    hideSidebar: true,\n        markdown: {\n          renderer: {\n            code(code, lang) {\n              if (lang === \"mermaid\") {\n                const svgName = `mermaid-svg-${svgCounter++}`;\n                const MERMAID_CONTAINER_ID = `${svgName}-container`;\n                mermaid.render(svgName, code).then(({ svg }) => {\n                  const containerElement = document.querySelector(\n                    `#${MERMAID_CONTAINER_ID}`\n                  );\n                  if (containerElement) {\n                    containerElement.innerHTML = svg;\n                  } else {\n                    console.error(`Error: #${MERMAID_CONTAINER_ID} not found`);\n                  }\n                });\n                return `<div class=\"mermaid\" id=\"${MERMAID_CONTAINER_ID}\"></div>`;\n              }\n              return this.origin.code.apply(this, arguments);\n            },\n          },\n        },\n    plugins: [\n      function(hook, _vm) {\n        vm = _vm;\n        \n        hook.beforeEach(function(content) {\n          return editor.value;\n        });\n      }\n    ]\n  };\n  \nlet timeout;\nfunction updatePreview() {\n  clearTimeout(timeout);\n  timeout = setTimeout(() => {\n    if (vm) {\n      const markdownSection = document.querySelector('.markdown-section');\n      if (markdownSection) {\n        const compiler = new window.DocsifyCompiler({\n          basePath: '/',\n          relativePath: false,\n          fallbackLanguages: [],\n          nameLink: '/',\n          routerMode: 'hash'\n        }, vm.router);\n        \n        const html = compiler.compile(editor.value);\n        markdownSection.innerHTML = html;\n        window.Prism.highlightAll();\n\n        // Re-render all mermaid diagrams\n        const mermaidDivs = markdownSection.querySelectorAll('pre[data-lang=\"mermaid\"] code');\n        mermaidDivs.forEach((div, index) => {\n          const code = div.textContent;\n          const svgName = `mermaid-svg-${svgCounter++}`;\n          const MERMAID_CONTAINER_ID = `${svgName}-container`;\n          \n          // Replace the <pre> element with our container\n          const container = document.createElement('div');\n          container.className = 'mermaid';\n          container.id = MERMAID_CONTAINER_ID;\n          div.parentElement.replaceWith(container);\n          \n          // Render the diagram\n          mermaid.render(svgName, code).then(({ svg }) => {\n            const containerElement = document.getElementById(MERMAID_CONTAINER_ID);\n            if (containerElement) {\n              containerElement.innerHTML = svg;\n            }\n          });\n        });\n      }\n    }\n  }, 500);\n};\n  \n  editor.addEventListener('input', updatePreview);\n</script>\n{{ $('CONFIG').first().json.HTML_docsify_include }}\n  </body>\n</html>"
+      }
+    },
+    {
+      "id": "0dc4c132-8e51-416b-8a88-3b5be32ea40d",
+      "name": "Workflow md content",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        13744,
+        6592
+      ],
+      "executeOnce": true,
+      "parameters": {
+        "html": "{{ $json.workflowdata }}"
+      }
+    },
+    {
+      "id": "6ad2eeae-1017-4087-808f-6870cb943dc4",
+      "name": "Is Action Edit?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        12384,
+        6656
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "856cdb3b-a187-4db5-b77b-43ee086780ee",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.query.action }}",
+              "rightValue": "edit"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6fcc7538-e79c-4c60-9337-fa7058ac3d7d",
+      "name": "Is Action Edit?2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        13264,
+        6432
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "e3648023-8cb7-4b82-bd35-1ba196458327",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.query.action }}",
+              "rightValue": "edit"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "288e106e-68f2-4e33-b54b-27abc731932d",
+      "name": "Generate Mermaid Chart",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12080,
+        6816
+      ],
+      "parameters": {
+        "jsCode": "const workflow = $input.first().json;\n\n// Extract nodes from the workflow\nconst nodes = workflow.nodes || [];\n\n// Node types to exclude\nconst excludedNodeTypes = ['n8n-nodes-base.stickyNote'];\n\n// Define shapes and their corresponding brackets\n// https://mermaid.js.org/syntax/flowchart.html\nconst shapes = {\n    'rect': ['[', ']'],\n    'rhombus': ['{', '}'],\n    'circle': ['((', '))'],\n    'hexagon': ['{{', '}}'],\n    'subroutine': ['[[', ']]'],\n    'parallelogram': ['[\\/', '\\/]'],\n    'wait': ['(', ')']\n    // Add more shapes here as needed\n};\n\n// Define special shapes for specific node types\nconst specialShapes = {\n    'n8n-nodes-base.if': 'rhombus',\n    'n8n-nodes-base.switch': 'rhombus',\n    'n8n-nodes-base.code': 'subroutine',\n    'n8n-nodes-base.executeWorkflow': 'subroutine',\n    'n8n-nodes-base.httpRequest':'parallelogram',\n    'n8n-nodes-base.wait':'wait'\n    // List more special node types\n};\n\n// Function to get the shape for a node type\nfunction getNodeShape(nodeType) {\n    return specialShapes[nodeType] || 'rect';\n}\n\n// Create a map of node names to their \"EL<N>\" identifiers, disabled status, and shape\nconst nodeMap = {};\nlet nodeCounter = 1;\nnodes.forEach((node) => {\n    if (!excludedNodeTypes.includes(node.type)) {\n        const shape = getNodeShape(node.type);\n        nodeMap[node.name] = {\n            id: `EL${nodeCounter}`,\n            disabled: node.disabled || false,\n            shape: shape,\n            brackets: shapes[shape] || shapes['rect'] // Default to rect if shape not found\n        };\n        nodeCounter++;\n    }\n});\n\n// Function to convert special characters to HTML entities\nfunction convertToHTMLEntities(str) {\n    return str.replaceAll('\"',\"'\").replace(/[^\\w\\s-]/g, function(char) {\n        return '&#' + char.charCodeAt(0) + ';';\n    });\n}\n\n// Function to format node text (with strike-through if disabled)\nfunction formatNodeText(nodeName, isDisabled) {\n    const escapedName = convertToHTMLEntities(nodeName);\n    return isDisabled ? `<s>${escapedName}</s>` : escapedName;\n}\n\n// Generate connections and isolated nodes\nconst connections = [];\nconst isolatedNodes = new Set(Object.keys(nodeMap));\n\nif (workflow.connections) {\n    Object.entries(workflow.connections).forEach(([sourceName, targetConnections]) => {\n        Object.entries(targetConnections).forEach(([connectionType, targets]) => {\n            targets.forEach(targetArray => {\n                targetArray.forEach(target => {\n                    const sourceNode = nodeMap[sourceName];\n                    const targetNode = nodeMap[target.node];\n                    if (sourceNode && targetNode) {\n                        let connectionLine = `    ${sourceNode.id}${sourceNode.brackets[0]}${formatNodeText(sourceName, sourceNode.disabled)}${sourceNode.brackets[1]}`;\n                        if (connectionType === 'main') {\n                            connectionLine += ` -->`;\n                        } else {\n                            connectionLine += ` -.- |${connectionType}|`;\n                        }\n                        connectionLine += ` ${targetNode.id}${targetNode.brackets[0]}${formatNodeText(target.node, targetNode.disabled)}${targetNode.brackets[1]}`;\n                        connections.push(connectionLine);\n                        isolatedNodes.delete(sourceName);\n                        isolatedNodes.delete(target.node);\n                    }\n                });\n            });\n        });\n    });\n}\n\n// Add isolated nodes to the connections array\nisolatedNodes.forEach(nodeName => {\n    const node = nodeMap[nodeName];\n    connections.push(`    ${node.id}${node.brackets[0]}${formatNodeText(nodeName, node.disabled)}${node.brackets[1]}`);\n});\n\n// Generate the Mermaid flowchart string\nconst mermaidChart = `---\nconfig:\n  look: neo\n  theme: default\n---\nflowchart LR\n${connections.join('\\n')}`;\n\n// Output the result\nreturn {\n    json: {\n        mermaidChart: mermaidChart\n    }\n};"
+      }
+    },
+    {
+      "id": "c71fcbac-17ee-46a1-80eb-c13f5a2f6f20",
+      "name": "Merge2",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        12928,
+        6688
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      }
+    },
+    {
+      "id": "739d7d58-e831-4f9f-8546-71e25adf9261",
+      "name": "Generated Doc",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        13088,
+        6784
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7693348d-5129-4a07-809d-b0619b9fc44b",
+              "name": "workflowdata",
+              "type": "string",
+              "value": "=# {{ $json.name }}\n\n{{ $json?.output?.workflow_description || \"## <SORRY, COULD NOT GENERATE WORKFLOW DESCRIPTION>\" }}\n\n## Workflow schematic\n\n```mermaid\n{{ $json.mermaidChart }}\n```\n\n{{ $json?.output?.nodes_settings || \"## <SORRY, COULD NOT GENERATE DOCS FOR NODE SETTING>\" }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c125572f-f7ef-4e28-967a-963200dc9f6d",
+      "name": "Passthrough",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        11184,
+        6784
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "40fc4ede-4c5f-4601-bced-9e02c77eebf0",
+      "name": "Merge3",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        12224,
+        6432
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      }
+    },
+    {
+      "id": "dad0794e-6b8f-4c13-a026-d26c135a4bcf",
+      "name": "Merge4",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        10048,
+        5456
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      }
+    },
+    {
+      "id": "588d66ac-0338-49be-ad42-3e8c773eb1e6",
+      "name": "Merge5",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        10048,
+        5792
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      }
+    },
+    {
+      "id": "04f1f8d6-153a-4d0f-a13a-2b4b98f2385f",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        11184,
+        7152
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8bc55c5b-e09a-459b-bbb6-ed5f70d4f353",
+              "name": "workflowdata",
+              "type": "string",
+              "value": "={{ $json.body.content }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "26ea5d30-1973-4f25-b0d4-b201400ab347",
+      "name": "Is Action Save?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        13616,
+        7152
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "e3648023-8cb7-4b82-bd35-1ba196458327",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json?.query?.action }}",
+              "rightValue": "save"
+            },
+            {
+              "id": "a44c9cc5-5717-4c34-978b-e644219a9cc1",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json?.query?.action }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6d5bc338-f18a-4dc0-8377-9b674623e9c2",
+      "name": "Merge6",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        13440,
+        7248
+      ],
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": 2
+      }
+    },
+    {
+      "id": "d585bb89-a2b7-4fe4-b272-9f331942f737",
+      "name": "Respond OK on Save",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        14000,
+        7136
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "dccf515f-1b2d-4449-a814-4b05564de1da",
+      "name": "single workflow",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        9328,
+        5792
+      ],
+      "parameters": {
+        "multipleMethods": true,
+        "path": "/:file",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "7bba7dfc-a11a-4086-ac5a-f45143428b56",
+      "name": "file types",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        10256,
+        5792
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "endsWith"
+                    },
+                    "leftValue": "={{ $json.params.file.toLowerCase() }}",
+                    "rightValue": ".md"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": ".md"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "unknown"
+        }
+      }
+    },
+    {
+      "id": "b9ee9d4d-d107-4313-8376-f13161c49dc4",
+      "name": "Get All Workflows",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        10960,
+        5712
+      ],
+      "parameters": {
+        "filters": {
+          "tags": "={{ decodeURIComponent(($json.params.file?.match(/^tag-(.+)\\.md$/))?.[1] || '') }}"
+        },
+        "requestOptions": {}
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "N8NAPI_CREDENTIAL_ID",
+          "name": "N8NAPI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "76ba3718-79bd-48f9-aef6-1d9ab70db9a6",
+      "name": "md files",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        10528,
+        5728
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.params.file }}",
+                    "rightValue": "README.md"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "README.md"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "c1c1aecc-8faa-47ea-b831-4674c3c0db61",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "leftValue": "={{ $json.params.file }}",
+                    "rightValue": "docs_"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "docs"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "fde643c9-31cd-4cbd-b4de-99a8ad6202af",
+                    "operator": {
+                      "name": "filter.operator.equals",
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.params.file }}",
+                    "rightValue": "summary.md"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "summary.md"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "df4bc9f8-9285-49a6-b31c-d7173bf42901",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    },
+                    "leftValue": "={{ $json.params.file }}",
+                    "rightValue": "tag-"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "tags"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "2f4e83f0-d3e0-4177-ab87-da30f5dbb7d0",
+      "name": "Get Workflow tags",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        10960,
+        6048
+      ],
+      "parameters": {
+        "filters": {},
+        "requestOptions": {}
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "N8NAPI_CREDENTIAL_ID",
+          "name": "N8NAPI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "2867a3eb-4867-4686-b16e-42b4bbb5b24a",
+      "name": "Sticky Note9",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        13088,
+        7056
+      ],
+      "parameters": {
+        "content": "## Save new file\nOnce the doc page is generated or edited manually, a Markdown files is saved in the directory",
+        "height": 348.0868581511653,
+        "width": 522.870786668288
+      }
+    },
+    {
+      "id": "7263cf26-ea4e-4c47-98c5-76be1af9b86f",
+      "name": "Sticky Note11",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        11872,
+        6576
+      ],
+      "parameters": {
+        "content": "## If the file is not available, then:\n* either auto-generate new doc\n* prepare a basic template for editing",
+        "height": 466.42237140646773,
+        "width": 1369.2986733206085
+      }
+    },
+    {
+      "id": "738788bb-8f59-4f4e-99b6-fbffba1b9be2",
+      "name": "docsify",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        9328,
+        5456
+      ],
+      "parameters": {
+        "path": "135bc21f-c7d0-4afe-be73-f984d444b43b",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "770c3f98-29c6-4c9f-bd32-a6bba73c96ed",
+      "name": "No Operation, do nothing1",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        10816,
+        7424
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "786ca2a9-856f-4e93-85b3-7fb43c31b990",
+      "name": "Merge7",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        12224,
+        6656
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      }
+    },
+    {
+      "id": "5d0a4221-3a69-4559-9d6d-4526fb51326c",
+      "name": "Sticky Note12",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        9216,
+        5312
+      ],
+      "parameters": {
+        "content": "## Main Docsify webhook\nIn response, n8n serves the main html page with the [Docsify JS library](https://docsify.js.org/)",
+        "height": 277.9529846153844,
+        "width": 296.5956923076922
+      }
+    },
+    {
+      "id": "3e09120c-3da0-47af-ba74-a96a7999300f",
+      "name": "Sticky Note13",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        9008,
+        5616
+      ],
+      "parameters": {
+        "content": "## Single page requests\n* Docsify may request default pages (i.e. `readme.md` or a `summary.md`)\n* GET request for the workflow documentation pages\n* POST request for saving manually edited doc page",
+        "height": 336,
+        "width": 509
+      }
+    },
+    {
+      "id": "e209feba-b7ca-4532-b35d-8212245fa1f8",
+      "name": "Sticky Note14",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        9536,
+        5312
+      ],
+      "parameters": {
+        "content": "## EDIT THIS!\n* `project_path` to link to a writable directory that is accessible to n8n\n* update `instance_url` when running in the cloud version. If using in self-hosted mode, make sure N8N_PROTOCOL and N8N_HOST .env variables are correct",
+        "height": 462.9720128227216,
+        "width": 489.50636350106504,
+        "color": 3
+      }
+    },
+    {
+      "id": "cc56c9bc-60d8-4d2c-b7ae-7ce543d097cc",
+      "name": "Sticky Note15",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        13696,
+        5296
+      ],
+      "parameters": {
+        "content": "## Construct main HTML page and send it back to the user\n* `HTML_headers` and `HTML_docsify_include` are stored in the CONFIG node for the page simplicity",
+        "height": 309.89805271694365,
+        "width": 446.67466982248516
+      }
+    },
+    {
+      "id": "0e39371e-198c-4747-ad1c-66ff5c315c74",
+      "name": "Sticky Note16",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        10864,
+        5504
+      ],
+      "parameters": {
+        "content": "## Serve main Markdown table with the workflow overview\n*NOTE! Here we don't reply with HTML content. Only Markdown elements are sent back and processed by the JS library*\n* Create an overall table when `README.md` (the home page) is requested\n* Create a table with a subset of workflows when a tag from a navigation pane is selected",
+        "height": 372,
+        "width": 820
+      }
+    },
+    {
+      "id": "66b15a66-8144-4652-95d8-5266531bc548",
+      "name": "Sticky Note17",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        10864,
+        5904
+      ],
+      "parameters": {
+        "content": "## Serve left pane content\n* Here all workflows are fetched again when `summary.md` file is requested.\n\nIt contains Markdown for the left navigation pane: a list of all tags",
+        "height": 288.20835077550953,
+        "width": 817.6163848212657
+      }
+    },
+    {
+      "id": "289ee9d4-8dc2-4488-9644-ac5e56fd60f5",
+      "name": "Sticky Note18",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        10784,
+        7328
+      ],
+      "parameters": {
+        "content": "## Handle missing pages\nServe the Markdown content with the requested file name for edge cases, i.e. any unexpected files",
+        "height": 262.5093167050718,
+        "width": 367.8950651848079
+      }
+    },
+    {
+      "id": "9bee3597-dfc5-4ad6-94a5-93ed0f0d50e2",
+      "name": "Sticky Note19",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        10096,
+        6272
+      ],
+      "parameters": {
+        "content": "# Main functionality here\n\n## * View existing documentation\n## * Auto-generate doc page if no file available\n## * Re-created autodoc page\n## * Edit doc page: LIVE Markdown editor included!\n## * Save edited file. WARNING! No authentication",
+        "height": 1142.0268674813442,
+        "width": 4161.578473434268,
+        "color": 6
+      }
+    },
+    {
+      "id": "f9cb50ea-abed-4ab4-b303-09ed48dfdefd",
+      "name": "Sticky Note20",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        13536,
+        6304
+      ],
+      "parameters": {
+        "content": "## Custom markdown editor\nThis is another HTML page for the live Markdown editor\n* `Mermaid.js` is supported\n* Docsify preview on edit\n* Save or Cancel buttons",
+        "height": 268.0620091282372,
+        "width": 652.3100890494833
+      }
+    },
+    {
+      "id": "7234e08b-9dd8-4dec-90b3-3a8543b69f68",
+      "name": "Sticky Note21",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        10976,
+        6304
+      ],
+      "parameters": {
+        "content": "## Load existing doc file\nCheck the existing file when the View or Edit button is pressed\n",
+        "height": 429.7891698152571,
+        "width": 639.8696984316115
+      }
+    }
+  ],
+  "connections": {
+    "CONFIG": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "HasFile?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Generated Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "Is Action Edit?2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge4": {
+      "main": [
+        [
+          {
+            "node": "Main Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge5": {
+      "main": [
+        [
+          {
+            "node": "file types",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge6": {
+      "main": [
+        [
+          {
+            "node": "Is Action Save?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "docsify": {
+      "main": [
+        [
+          {
+            "node": "CONFIG",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HasFile?": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Single Workflow1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "md files": {
+      "main": [
+        [
+          {
+            "node": "Get All Workflows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "doc action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Workflow tags",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get All Workflows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Page": {
+      "main": [
+        [
+          {
+            "node": "Respond with HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty Set": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Main Page": {
+      "main": [
+        [
+          {
+            "node": "Respond with main page HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "doc action": {
+      "main": [
+        [
+          {
+            "node": "Load Doc File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Passthrough",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Load Doc File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Passthrough",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Empty Set",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Passthrough",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "file types": {
+      "main": [
+        [
+          {
+            "node": "md files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Passthrough": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Merge7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generated Doc": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Action Edit?2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Doc File": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Tags": {
+      "main": [
+        [
+          {
+            "node": "Respond with markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Blank Doc File": {
+      "main": [
+        [
+          {
+            "node": "Is Action Edit?2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort-workflows": {
+      "main": [
+        [
+          {
+            "node": "Fill Workflow Table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Save New Doc File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Action Save?": {
+      "main": [
+        [
+          {
+            "node": "Respond OK on Save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "single workflow": {
+      "main": [
+        [
+          {
+            "node": "CONFIG",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "CONFIG",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Is Action Edit?1": {
+      "main": [
+        [
+          {
+            "node": "Blank Doc File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Action Edit?2": {
+      "main": [
+        [
+          {
+            "node": "Edit Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Workflow md content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Workflows": {
+      "main": [
+        [
+          {
+            "node": "Sort-workflows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Workflow tags": {
+      "main": [
+        [
+          {
+            "node": "Workflow Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instance overview": {
+      "main": [
+        [
+          {
+            "node": "Respond with markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save New Doc File": {
+      "main": [
+        [
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback file name": {
+      "main": [
+        [
+          {
+            "node": "Respond with markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fill Workflow Table": {
+      "main": [
+        [
+          {
+            "node": "Instance overview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow md content": {
+      "main": [
+        [
+          {
+            "node": "Respond with markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Single Workflow1": {
+      "main": [
+        [
+          {
+            "node": "Generate Mermaid Chart",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge7",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Generate Mermaid Chart": {
+      "main": [
+        [
+          {
+            "node": "Merge7",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing1": {
+      "main": [
+        [
+          {
+            "node": "Fallback file name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge7": {
+      "main": [
+        [
+          {
+            "node": "Is Action Edit?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
