@@ -406,11 +406,7 @@
       ],
       "parameters": {
         "operation": "get",
-        "workflowId": {
-          "__rl": true,
-          "mode": "id",
-          "value": "={{ $('CONFIG').first().json.params.file.replaceAll('docs_','').split('.md')[0] }}"
-        },
+        "workflowId": "{{WORKFLOWID}}",
         "requestOptions": {}
       },
       "credentials": {
@@ -455,16 +451,10 @@
       ],
       "onError": "continueRegularOutput",
       "parameters": {
-        "promptType": "define",
+        "promptType": "{{PROMPTTYPE}}",
         "text": "=Here's the workflow data:\n{{Object.assign(\n  Object.fromEntries(Object.entries($json).filter(([key]) => !['staticData', 'pinData'].includes(key))),\n  {nodes: $json.nodes.map(node => Object.fromEntries(Object.entries(node).filter(([key]) => !['id', 'position'].includes(key))))}\n).toJsonString() }}",
         "hasOutputParser": true,
-        "messages": {
-          "messageValues": [
-            {
-              "message": "=Your task is to generate simple workflow documentation for the n8n workflows. The user will provide a JSON structure. Reply \nin JSON format in 2 sections: workflow_desription and nodes_settings. Important! Each json key should be a simple markdown text without any additional comments or remarks from your end.\n\nInstruction for `workflow_desription`:\n```\n## Section header with H2\n\\n\n> subline with who created workflow and when, when it was last edited and the status (active / inactive as the green / grey round emoji). Also, when the documentation was generated. Now is: {{ $now }}.\n\\n\\n\nShould contain a description of the workflow. in a couple of paragraphs. Use direct voice without the fluff\n```\n\nInstruction for `nodes_settings`:\n```\n## Section header with H2.\n\\n\n### Node 1 name as H3 title\n  - For each node make a bullet list with the main node configs. Ignore irrelevant configs. Enclose each config value in code backticks (`). Look:\n  - Parameter 1 name: `Parameter 1 value`\n  - Parameter 2 name: `Parameter 2 value`\n\\n\\n\n### Node 2 name as H3 title\n  - For each node make a bullet list with the main node configs. Ignore irrelevant configs. Enclose each config value in code backticks (`). Look:\n  - Parameter 1 name: `Parameter 1 value`\n  - Parameter 2 name: `Parameter 2 value`\n\\n\\n\n```"
-            }
-          ]
-        }
+        "messages": "{{MESSAGES}}"
       }
     },
     {
@@ -500,7 +490,7 @@
         6912
       ],
       "parameters": {
-        "jsonSchemaExample": "{\n\t\"workflow_description\": \"## Workflow overview\\n\\n>some additiona info\\n\\nWorkflow desctiption\",\n\t\"nodes_settings\": \"## Nodes settings\\n\\n###Node name 1\\n\\n-  Setting 1\\n-  Setting 2###Node name 2\\n\\n-  Setting 1\\n-  Setting 2\"\n}"
+        "jsonSchemaExample": "{{JSONSCHEMAEXAMPLE}}"
       }
     },
     {
@@ -905,7 +895,7 @@
       ],
       "parameters": {
         "multipleMethods": true,
-        "path": "/:file",
+        "path": "WEBHOOK_PATH",
         "responseMode": "responseNode",
         "options": {}
       }
@@ -1150,7 +1140,7 @@
         5456
       ],
       "parameters": {
-        "path": "135bc21f-c7d0-4afe-be73-f984d444b43b",
+        "path": "WEBHOOK_PATH",
         "responseMode": "responseNode",
         "options": {}
       }
