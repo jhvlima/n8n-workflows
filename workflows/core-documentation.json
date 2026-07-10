@@ -1,0 +1,176 @@
+{
+  "name": "Core - Documentação n8n (Dry Run)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "03117801-f6da-402d-8dd6-326baae4c5dc",
+      "name": "Executar manualmente"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "required-tag",
+              "name": "requiredTag",
+              "type": "string",
+              "value": "docs-internal"
+            },
+            {
+              "id": "dry-run",
+              "name": "dryRun",
+              "type": "boolean",
+              "value": true
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        0
+      ],
+      "id": "77a5415d-ed8a-431b-a74c-67127b2b2fa1",
+      "name": "Configuração"
+    },
+    {
+      "parameters": {
+        "filters": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        480,
+        0
+      ],
+      "id": "e612a299-7c92-4d05-b9c4-932feb6eb4d1",
+      "name": "Listar workflows",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $(\"Configuração\").first().json;\nconst workflows = $input.all().map((item) => item.json);\nconst norm = (value) => String(value ?? \"\").trim().toLowerCase();\nconst selected = workflows.filter((workflow) =>\n  (workflow.tags ?? []).some((tag) => norm(tag.name ?? tag) === norm(cfg.requiredTag))\n);\n\nconst sensitiveKey = /(authorization|api.?key|token|secret|password|cookie|private.?key|client.?secret|workflow.?id|spreadsheet.?id|document.?id|folder.?id|database.?id|prompt|messages|system.?message|json.?schema.?example)/i;\nconst placeholder = (key) => `{{${String(key || \"SECRET\").replace(/[^a-z0-9]+/gi, \"_\").toUpperCase()}}}`;\n\nfunction sanitize(value, key = \"\") {\n  if (sensitiveKey.test(key)) return placeholder(key);\n  if (Array.isArray(value)) return value.map((entry) => sanitize(entry, key));\n  if (value && typeof value === \"object\") {\n    return Object.fromEntries(Object.entries(value).map(([childKey, childValue]) => [childKey, sanitize(childValue, childKey)]));\n  }\n  if (typeof value !== \"string\") return value;\n  return value\n    .replace(/Bearer\\s+[A-Za-z0-9._~+\\/=\\-]+/gi, \"Bearer {{AUTH_TOKEN}}\")\n    .replace(/https?:\\/\\/(?:localhost|127\\.0\\.0\\.1|10\\.\\d+\\.\\d+\\.\\d+|192\\.168\\.\\d+\\.\\d+)(?::\\d+)?/gi, \"https://internal.example\");\n}\n\nfunction publicNode(node) {\n  const allowed = [\"id\", \"name\", \"type\", \"typeVersion\", \"position\", \"disabled\", \"notes\", \"notesInFlow\", \"executeOnce\", \"retryOnFail\", \"maxTries\", \"waitBetweenTries\", \"onError\"];\n  const clean = Object.fromEntries(allowed.filter((key) => node[key] !== undefined).map((key) => [key, node[key]]));\n  clean.parameters = sanitize(node.parameters ?? {});\n  if (/(webhook|formTrigger)/i.test(node.type) && clean.parameters.path) clean.parameters.path = \"WEBHOOK_PATH\";\n  if (/chainLlm/i.test(node.type) && clean.parameters.text) clean.parameters.text = \"{{TEXT}}\";\n  if (node.credentials) {\n    clean.credentials = Object.fromEntries(Object.keys(node.credentials).map((type) => [\n      type,\n      { id: `${type.toUpperCase()}_CREDENTIAL_ID`, name: `${type.toUpperCase()}_CREDENTIAL` },\n    ]));\n  }\n  return clean;\n}\n\nfunction readMetadata(workflow) {\n  const note = (workflow.nodes ?? []).find((node) =>\n    node.type === \"n8n-nodes-base.stickyNote\" && String(node.parameters?.content ?? \"\").includes(\"@project-docs\")\n  );\n  const meta = {};\n  for (const line of String(note?.parameters?.content ?? \"\").split(\"\\n\")) {\n    const match = line.match(/^([A-Za-z][A-Za-z0-9_-]*):\\s*(.+)$/);\n    if (match) meta[match[1]] = match[2].trim();\n  }\n  return meta;\n}\n\nfunction escapeMermaid(value) {\n  return String(value).replace(/[\"\\n\\r]/g, \" \").replace(/[<>]/g, \"\");\n}\n\nfunction makeMermaid(workflow) {\n  const nodes = workflow.nodes ?? [];\n  const ids = new Map(nodes.map((node, index) => [node.name, `N${index}`]));\n  const lines = [\"flowchart LR\"];\n  for (const node of nodes) lines.push(`  ${ids.get(node.name)}[\"${escapeMermaid(node.name)}\"]`);\n  for (const [source, outputs] of Object.entries(workflow.connections ?? {})) {\n    for (const channel of outputs.main ?? []) {\n      for (const target of channel ?? []) {\n        if (ids.has(source) && ids.has(target.node)) lines.push(`  ${ids.get(source)} --> ${ids.get(target.node)}`);\n      }\n    }\n  }\n  return [...new Set(lines)].join(\"\\n\");\n}\n\nfunction stableHash(text) {\n  let hash = 2166136261;\n  for (let index = 0; index < text.length; index++) {\n    hash ^= text.charCodeAt(index);\n    hash = Math.imul(hash, 16777619);\n  }\n  return (hash >>> 0).toString(16).padStart(8, \"0\");\n}\n\nif (selected.length === 0) {\n  return [{ json: { kind: \"empty\", requiredTag: cfg.requiredTag, discovered: workflows.length, message: \"Nenhum workflow selecionado.\" } }];\n}\n\nreturn selected.map((workflow) => {\n  const metadata = readMetadata(workflow);\n  const nodes = workflow.nodes ?? [];\n  const triggers = nodes.filter((node) => /(trigger|webhook)/i.test(node.type)).map((node) => node.name);\n  const integrations = [...new Set(nodes.map((node) => node.type.split(\".\").pop()).filter(Boolean))].sort();\n  const publicWorkflow = {\n    name: metadata.project || workflow.name,\n    nodes: nodes.map(publicNode),\n    connections: workflow.connections ?? {},\n    settings: { executionOrder: workflow.settings?.executionOrder ?? \"v1\" },\n  };\n  const workflowJson = JSON.stringify(publicWorkflow, null, 2);\n  const mermaid = makeMermaid(workflow);\n  const title = metadata.project || workflow.name;\n  const summary = metadata.summary || \"Resumo pendente de revisão humana.\";\n  const readme = [\n    `# ${title}`,\n    \"\", \"## Visão geral\", \"\", summary,\n    \"\", \"## Arquitetura\", \"\", \"```mermaid\", mermaid, \"```\",\n    \"\", \"## Gatilhos\", \"\", ...(triggers.length ? triggers.map((name) => `- ${name}`) : [\"- Nenhum gatilho identificado\"]),\n    \"\", \"## Integrações e tipos de nós\", \"\", ...integrations.map((name) => `- ${name}`),\n    \"\", \"## Como importar\", \"\", \"1. Importe `workflow.sanitized.json` no n8n.\", \"2. Configure as credenciais indicadas por placeholders.\", \"3. Revise URLs, IDs e variáveis de ambiente.\", \"4. Teste manualmente antes de ativar.\",\n    \"\", \"## Revisão\", \"\", \"Documento gerado deterministicamente. Contexto, resultados e decisões técnicas devem ser revisados por uma pessoa.\",\n  ].join(\"\\n\");\n  const runbook = [`# Runbook — ${title}`, \"\", \"## Inicialização\", \"- Validar credenciais e dependências.\", \"- Executar um teste manual.\", \"\", \"## Desativação\", \"- Desativar o workflow no n8n.\", \"- Registrar o motivo e a execução afetada.\", \"\", \"## Rollback\", \"- Restaurar uma versão revisada do JSON.\", \"- Revalidar em modo manual antes de reativar.\"].join(\"\\n\");\n  const troubleshooting = [`# Troubleshooting — ${title}`, \"\", \"## Checklist\", \"1. Consultar a execução com erro.\", \"2. Identificar o primeiro nó que falhou.\", \"3. Verificar credenciais, limites e disponibilidade das APIs.\", \"4. Validar o formato da entrada.\", \"5. Reexecutar apenas após revisar efeitos colaterais.\"].join(\"\\n\");\n  const projectMetadata = {\n    workflowId: workflow.id, title, summary, owner: metadata.owner || \"PENDENTE\",\n    criticality: metadata.criticality || \"PENDENTE\", tags: (workflow.tags ?? []).map((tag) => tag.name ?? tag),\n    triggers, integrations, nodeCount: nodes.length, connectionGroups: Object.keys(workflow.connections ?? {}).length,\n    sourceUpdatedAt: workflow.updatedAt, reviewStatus: \"draft\", hash: stableHash(workflowJson),\n  };\n  return { json: {\n    kind: \"project\", workflowId: workflow.id, title, dryRun: true, reviewRequired: true,\n    metadata: projectMetadata,\n    files: {\n      \"README.md\": readme,\n      \"workflow.sanitized.json\": workflowJson,\n      \"architecture.mmd\": mermaid,\n      \"docs/runbook.md\": runbook,\n      \"docs/troubleshooting.md\": troubleshooting,\n      \"metadata.json\": JSON.stringify(projectMetadata, null, 2),\n      \"AI_PROMPT.md\": `Revise a documentação de ${title} sem inventar responsáveis, resultados, SLA ou regras de negócio. Liste dúvidas para revisão humana.`,\n    },\n  } };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "id": "51578dc2-ecbb-43fd-a895-64b77ee91b9b",
+      "name": "Extrair, sanitizar e gerar documentos"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map((item) => item.json);\nconst projects = rows.filter((row) => row.kind === \"project\");\nconst empty = rows.find((row) => row.kind === \"empty\");\nreturn [{ json: {\n  status: \"dry-run\",\n  selectedProjects: projects.length,\n  payloads: projects,\n  discoveredWorkflows: empty?.discovered ?? undefined,\n  projects: projects.map((project) => ({\n    workflowId: project.workflowId,\n    title: project.title,\n    hash: project.metadata.hash,\n    files: Object.keys(project.files),\n    reviewRequired: project.reviewRequired,\n  })),\n  message: empty?.message ?? \"Arquivos preparados; nenhuma publicação foi realizada.\",\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "270ea493-64a0-4024-abba-0d03e8d3f2ff",
+      "name": "Resumo do dry-run"
+    },
+    {
+      "parameters": {
+        "content": "## Documentação — Core\n\n**Objetivo:** gerar documentação determinística dos workflows com a tag **docs-internal**.\n\n### Funcionamento\n1. Pode ser executado manualmente ou chamado pelo Publisher.\n2. Lista e filtra os workflows da instância.\n3. Sanitiza credenciais, URLs, webhooks e prompts.\n4. Gera README, Mermaid, runbook, troubleshooting, metadados e JSON importável.\n\n### Segurança\n- Não chama IA e não escreve no GitHub.\n- Toda saída deve passar por revisão humana.",
+        "height": 432,
+        "width": 620,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -480
+      ],
+      "id": "eb98749a-2bd7-437c-a7e3-c523fed68840",
+      "name": "Documentação - Core"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        192
+      ],
+      "id": "35855046-ed5c-44d6-a768-e0deaa55a779",
+      "name": "Chamado por outro workflow"
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuração": {
+      "main": [
+        [
+          {
+            "node": "Listar workflows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar workflows": {
+      "main": [
+        [
+          {
+            "node": "Extrair, sanitizar e gerar documentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair, sanitizar e gerar documentos": {
+      "main": [
+        [
+          {
+            "node": "Resumo do dry-run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chamado por outro workflow": {
+      "main": [
+        [
+          {
+            "node": "Configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,316 @@
+{
+  "name": "Publisher - GitHub n8n-workflows",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        0
+      ],
+      "id": "8ab0c44d-5ef6-476f-b5c9-c4bc25d2eee2",
+      "name": "Executar publicação de teste"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_CORE_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Core - Documentação n8n (Dry Run)"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        64,
+        0
+      ],
+      "id": "e3f1b76b-7377-4011-9093-d1ad31ab4143",
+      "name": "Executar core determinístico"
+    },
+    {
+      "parameters": {
+        "jsCode": "const summary = $input.first().json;\nconst owner = \"YOUR_GITHUB_USER\";\nconst repository = \"YOUR_REPOSITORY\";\nconst branch = \"docs/generated\";\nconst slugify = (value) => String(value).normalize(\"NFD\").replace(/[\\u0300-\\u036f]/g, \"\").toLowerCase().replace(/[^a-z0-9]+/g, \"-\").replace(/^-|-$/g, \"\");\nconst output = [];\nfor (const project of summary.payloads ?? []) {\n  const slug = slugify(project.title);\n  for (const [relativePath, desiredContent] of Object.entries(project.files ?? {})) {\n    output.push({ json: {\n      owner, repository, branch, slug,\n      workflowId: project.workflowId,\n      projectTitle: project.title,\n      path: `projects/${slug}/${relativePath}`,\n      desiredContent,\n      commitMessage: `docs(${slug}): sync ${relativePath}`,\n    } });\n  }\n}\nif (output.length === 0) throw new Error(\"O core não retornou arquivos para publicação.\");\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        0
+      ],
+      "id": "237a6e2e-3e60-4a38-9e76-1a8f538fa405",
+      "name": "Expandir arquivos"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "jhvlima",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "n8n-workflows",
+          "mode": "name"
+        },
+        "filePath": "={{ $json.path }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $json.branch }}"
+        }
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        16
+      ],
+      "id": "4363f087-1e8c-4c1e-89eb-ba49d87ced8f",
+      "name": "Consultar arquivo existente",
+      "webhookId": "7963377b-46f8-41b0-a672-370f88274829",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const desired = $(\"Loop por arquivo\").item.json;\nconst currentSha = typeof $json.sha === \"string\" ? $json.sha : null;\nconst requestBody = {\n  message: desired.commitMessage,\n  content: Buffer.from(desired.desiredContent, \"utf8\").toString(\"base64\"),\n  branch: desired.branch,\n};\nif (currentSha) requestBody.sha = currentSha;\nreturn { json: { ...desired, existed: Boolean(currentSha), currentSha, requestBody } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        16
+      ],
+      "id": "57dff19b-cbc2-406d-8d0d-f0f00ec108a0",
+      "name": "Preparar upsert"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ `https://api.github.com/repos/${$json.owner}/${$json.repository}/contents/${$json.path.split(\"/\").map(encodeURIComponent).join(\"/\")}` }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.requestBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1200,
+        16
+      ],
+      "id": "37390114-a6a1-494f-a558-24dce92e03fd",
+      "name": "Criar ou atualizar no GitHub"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const desired = $(\"Preparar upsert\").item.json;\nreturn { json: {\n  action: desired.existed ? \"updated\" : \"created\",\n  path: desired.path,\n  branch: desired.branch,\n  workflowId: desired.workflowId,\n  projectTitle: desired.projectTitle,\n  commitSha: $json.commit?.sha ?? null,\n} };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        16
+      ],
+      "id": "be770820-f4da-4657-a1ce-c14ca26bcb03",
+      "name": "Registrar arquivo publicado"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $input.all().map((item) => item.json);\nreturn [{ json: {\n  status: \"test-published\",\n  repository: \"YOUR_GITHUB_USER/YOUR_REPOSITORY\",\n  branch: \"docs/generated\",\n  created: results.filter((item) => item.action === \"created\").length,\n  updated: results.filter((item) => item.action === \"updated\").length,\n  files: results,\n  reviewRequired: true,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -256
+      ],
+      "id": "704cb3cd-5b6a-46ee-9961-5df7f4a4a324",
+      "name": "Resumo da publicação"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        512,
+        0
+      ],
+      "id": "0c94e316-ad50-45f4-800c-bb1a213f9e3e",
+      "name": "Loop por arquivo"
+    },
+    {
+      "parameters": {
+        "content": "## Documentação — Publisher GitHub\n\n**Objetivo:** publicar no GitHub a documentação determinística enriquecida pela IA.\n\n### Destino de teste\n- Repositório: **YOUR_GITHUB_USER/YOUR_REPOSITORY**\n- Branch: **docs/generated**\n- Execução: manual; workflow permanece inativo.\n\n### Fluxo\n1. Executa o Core determinístico.\n2. Envia somente o conteúdo sanitizado ao workflow de IA.\n3. Expande e processa um arquivo por vez.\n4. Consulta se o arquivo existe e faz create/update.\n5. Retorna um resumo da publicação.\n\n### Cuidados\n- Não publica diretamente em **main**.\n- O conteúdo da IA exige revisão no PR.",
+        "height": 440,
+        "width": 820,
+        "color": 4
+      },
+      "id": "7b57ecbb-128d-4234-90f8-cde0596ebb1e",
+      "name": "Documentação - Publisher GitHub",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        -672
+      ]
+    },
+    {
+      "id": "7633e97a-609e-4d1a-afc2-2c93634dbb36",
+      "name": "Executar enriquecimento com IA",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        304,
+        -160
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_AI_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "AI - Enriquecimento da Documentação n8n"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Executar publicação de teste": {
+      "main": [
+        [
+          {
+            "node": "Executar core determinístico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar core determinístico": {
+      "main": [
+        [
+          {
+            "node": "Executar enriquecimento com IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expandir arquivos": {
+      "main": [
+        [
+          {
+            "node": "Loop por arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar arquivo existente": {
+      "main": [
+        [
+          {
+            "node": "Preparar upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar upsert": {
+      "main": [
+        [
+          {
+            "node": "Criar ou atualizar no GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar ou atualizar no GitHub": {
+      "main": [
+        [
+          {
+            "node": "Registrar arquivo publicado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar arquivo publicado": {
+      "main": [
+        [
+          {
+            "node": "Loop por arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop por arquivo": {
+      "main": [
+        [
+          {
+            "node": "Resumo da publicação",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar arquivo existente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar enriquecimento com IA": {
+      "main": [
+        [
+          {
+            "node": "Expandir arquivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
