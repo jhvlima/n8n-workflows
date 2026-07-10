@@ -452,7 +452,7 @@
       "onError": "continueRegularOutput",
       "parameters": {
         "promptType": "{{PROMPTTYPE}}",
-        "text": "=Here's the workflow data:\n{{Object.assign(\n  Object.fromEntries(Object.entries($json).filter(([key]) => !['staticData', 'pinData'].includes(key))),\n  {nodes: $json.nodes.map(node => Object.fromEntries(Object.entries(node).filter(([key]) => !['id', 'position'].includes(key))))}\n).toJsonString() }}",
+        "text": "{{TEXT}}",
         "hasOutputParser": true,
         "messages": "{{MESSAGES}}"
       }
