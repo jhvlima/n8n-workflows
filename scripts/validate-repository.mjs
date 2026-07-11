@@ -12,12 +12,15 @@ const requiredFiles = [
   'docs/CONFIGURATION.md',
   'docs/ARCHITECTURE.md',
   'docs/CONTRIBUTING-DOCUMENTS.md',
+  'docs/LIFECYCLE.md',
   'docs/SECURITY.md',
   'scripts/export-workflow-templates.mjs',
   'scripts/validate-repository.mjs',
   'workflows/core-documentation.json',
   'workflows/ai-enrichment.json',
   'workflows/github-publisher.json',
+  'workflows/bootstrap-documentation.json',
+  'workflows/daily-maintenance.json',
 ];
 
 const errors = [];

@@ -9,6 +9,8 @@ const requiredEnvironment = [
   'N8N_CORE_WORKFLOW_ID',
   'N8N_AI_WORKFLOW_ID',
   'N8N_PUBLISHER_WORKFLOW_ID',
+  'N8N_BOOTSTRAP_WORKFLOW_ID',
+  'N8N_MAINTENANCE_WORKFLOW_ID',
 ];
 
 const missing = requiredEnvironment.filter((name) => !process.env[name]);
@@ -21,12 +23,16 @@ const workflowIds = {
   core: process.env.N8N_CORE_WORKFLOW_ID,
   ai: process.env.N8N_AI_WORKFLOW_ID,
   publisher: process.env.N8N_PUBLISHER_WORKFLOW_ID,
+  bootstrap: process.env.N8N_BOOTSTRAP_WORKFLOW_ID,
+  maintenance: process.env.N8N_MAINTENANCE_WORKFLOW_ID,
 };
 
 const outputFiles = {
   core: 'core-documentation.json',
   ai: 'ai-enrichment.json',
   publisher: 'github-publisher.json',
+  bootstrap: 'bootstrap-documentation.json',
+  maintenance: 'daily-maintenance.json',
 };
 
 async function fetchWorkflow(id) {
@@ -64,32 +70,40 @@ function sanitizeNode(node, workflowKind) {
   delete clean.credentials;
 
   if (clean.type === 'n8n-nodes-base.executeWorkflow') {
-    const targetIsAi = /enriquecimento com ia/i.test(clean.name);
-    const placeholder = targetIsAi ? 'SELECT_AI_WORKFLOW_AFTER_IMPORT' : 'SELECT_CORE_WORKFLOW_AFTER_IMPORT';
-    const targetName = targetIsAi
-      ? 'AI - Enriquecimento da Documentação n8n'
-      : 'Core - Documentação n8n (Dry Run)';
+    const target = /publicar/i.test(clean.name)
+      ? 'publisher'
+      : /ia|enriquecimento/i.test(clean.name)
+        ? 'ai'
+        : 'core';
+    const targets = {
+      core: {
+        placeholder: 'SELECT_CORE_WORKFLOW_AFTER_IMPORT',
+        name: 'Core - Documentação n8n (Dry Run)',
+      },
+      ai: {
+        placeholder: 'SELECT_AI_WORKFLOW_AFTER_IMPORT',
+        name: 'AI - Enriquecimento da Documentação n8n',
+      },
+      publisher: {
+        placeholder: 'SELECT_PUBLISHER_WORKFLOW_AFTER_IMPORT',
+        name: 'Publisher - GitHub n8n-workflows',
+      },
+    };
 
     clean.parameters.workflowId = {
       __rl: true,
-      value: placeholder,
+      value: targets[target].placeholder,
       mode: 'list',
-      cachedResultName: targetName,
+      cachedResultName: targets[target].name,
     };
   }
 
-  if (workflowKind === 'core' && clean.name === 'Configuração') {
-    const assignments = clean.parameters?.assignments?.assignments ?? [];
-    clean.parameters.assignments.assignments = assignments.filter(
-      (assignment) => !['githubOwner', 'githubRepository'].includes(assignment.name),
-    );
-  }
-
-  if (workflowKind === 'publisher' && clean.name === 'Expandir arquivos') {
+  if (['bootstrap', 'maintenance'].includes(workflowKind) && clean.type === 'n8n-nodes-base.code') {
     clean.parameters.jsCode = clean.parameters.jsCode
-      .replace(/const owner = "[^"]+";/, 'const owner = "YOUR_GITHUB_USER";')
-      .replace(/const repository = "[^"]+";/, 'const repository = "YOUR_REPOSITORY";')
-      .replace(/const branch = "[^"]+";/, 'const branch = "docs/generated";');
+      .replace(/input\.projectSlug\?\?'[^']*'/g, "input.projectSlug??'YOUR_PROJECT_SLUG'")
+      .replace(/input\.owner\?\?'[^']*'/g, "input.owner??'YOUR_GITHUB_USER'")
+      .replace(/input\.repository\?\?'[^']*'/g, "input.repository??'YOUR_REPOSITORY'")
+      .replace(/input\.branch\?\?'[^']*'/g, "input.branch??'docs/generated'");
   }
 
   return clean;

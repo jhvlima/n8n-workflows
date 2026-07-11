@@ -1,80 +1,70 @@
-# Arquitetura e contratos de dados
-
-O projeto divide responsabilidades para que geração, IA e publicação possam falhar ou ser substituídas independentemente.
+# Arquitetura e contratos
 
 ## Componentes
 
 ```mermaid
 flowchart TD
-    T[Tag docs-internal] --> C[Core]
-    C -->|payloads com arquivos sanitizados| A[IA opcional]
-    A -->|payloads enriquecidos| P[Publisher]
-    P --> G[GitHub branch]
-    G --> R[Pull request]
-    R --> H[Revisão humana]
-
-    C -. sem IA .-> P
+    T[Tags docs-internal e project:slug] --> C[Core N:1]
+    C --> B[Bootstrap manual]
+    C --> M[Maintenance diária]
+    B --> A[IA opcional]
+    B --> P[Publisher]
+    M --> D{Hash mudou?}
+    D -->|não| S[Skip]
+    D -->|sim| O{aiMode on-change?}
+    O -->|sim| A
+    O -->|não| P
+    A --> P
+    P --> G[GitHub monorepo]
 ```
 
 ## Contrato do Core
 
-O Core retorna um resumo com uma lista `payloads`. Cada projeto possui:
-
 ```json
 {
   "kind": "project",
-  "workflowId": "ID_LOCAL",
-  "title": "Nome do workflow",
-  "metadata": {},
-  "files": {
+  "projectSlug": "agente-vendas",
+  "functionalHash": "hash-agregado",
+  "components": [],
+  "dependencies": [],
+  "humanFiles": {
     "README.md": "...",
-    "workflow.sanitized.json": "..."
+    "docs/runbook.md": "..."
+  },
+  "technicalFiles": {
+    "workflows/agente.sanitized.json": "...",
+    "generated/architecture.mmd": "...",
+    "project.json": "..."
   },
   "reviewRequired": true
 }
 ```
 
-Os IDs locais são usados apenas durante a execução. Os templates deste repositório não preservam IDs de credenciais ou referências de subworkflows da instância mantenedora.
+O hash agrega os hashes funcionais de todos os componentes e suas dependências. Credenciais, IDs de credenciais e caminhos privados não participam do conteúdo público.
+
+## Agentes, tools e subworkflows
+
+O `project.json` registra cada componente com `componentId`, papel, hash e ID local. Dependências diretas formam relações `usesTool` ou `callsSubflow` e alimentam `generated/architecture.mmd`.
+
+Uma tool compartilhada é documentada uma vez e pode aparecer como dependência de vários agentes.
 
 ## Contrato da IA
 
-A IA preserva o payload recebido e acrescenta `aiEnrichment` e `docs/ai-enrichment.md`.
+A IA preserva `humanFiles` e `technicalFiles` e acrescenta `aiEnrichment` estruturado. O destino do Markdown depende de `documentationMode`:
 
-```json
-{
-  "summary": "...",
-  "businessPurpose": "...",
-  "inputs": [],
-  "outputs": [],
-  "integrations": [],
-  "risks": [],
-  "troubleshootingSuggestions": [],
-  "reviewNotes": [],
-  "confidence": "low"
-}
-```
-
-O valor de `confidence` não aprova o conteúdo. `reviewRequired` permanece verdadeiro em todos os casos.
+- `bootstrap` → `docs/ai-enrichment.md`;
+- `maintenance` → `generated/ai-change-analysis.md`.
 
 ## Contrato do Publisher
 
-O Publisher percorre dinamicamente todas as entradas de `files`. Portanto, novos documentos podem ser publicados sem alterar os nós do GitHub, desde que uma etapa anterior os adicione ao payload com um caminho relativo seguro.
+O Publisher recebe caminhos completos e não conhece regras de Bootstrap ou Maintenance. Cada arquivo é consultado, comparado e então criado, atualizado ou ignorado.
 
-O caminho final segue esta regra:
+Como a escrita é serial, os orquestradores enviam `project.json` por último. Assim ele funciona como marcador de uma versão completamente publicada.
 
-```text
-projects/<slug-do-título>/<caminho-relativo>
-```
+## Falhas e idempotência
 
-Antes de aceitar caminhos de fontes externas, implemente validação para impedir caminhos absolutos, segmentos `..`, extensões não permitidas e arquivos excessivamente grandes.
-
-## Falhas isoladas
-
-- Se o Core falhar, nenhum documento é enviado à IA ou ao GitHub.
-- Se a IA falhar, o Publisher integrado também interrompe. É possível usar o modo sem IA descrito na instalação.
-- Se um arquivo falhar no GitHub, o resumo do Publisher não é concluído.
-- O loop serial reduz conflitos internos, mas alterações simultâneas no mesmo arquivo ainda podem produzir HTTP `409`.
-
-## Extensões previstas
-
-Uma etapa futura de ingestão pode normalizar documentos escritos por pessoas, agentes CLI ou conversas exportadas. Ela deve ficar entre o Core e a IA e produzir caminhos sob `docs/contributed/`.
+- Core falhou: nada é publicado.
+- IA falhou: a publicação do projeto é interrompida.
+- Publisher falhou antes de `project.json`: a próxima execução ainda pode recuperar os arquivos.
+- Hash igual: Maintenance não chama IA nem Publisher.
+- Projeto sem `project.json` concluído: Maintenance exige Bootstrap.

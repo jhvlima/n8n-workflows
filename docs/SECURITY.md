@@ -1,68 +1,52 @@
 # Segurança
 
-O pipeline reduz exposição acidental, mas não transforma automaticamente qualquer workflow em conteúdo público seguro.
+O pipeline reduz exposição acidental, mas não torna qualquer workflow seguro para publicação.
 
 ## Limites de confiança
 
-- O Core é responsável por sanitização determinística.
-- A IA recebe apenas o JSON sanitizado.
-- A saída da IA é uma sugestão não confiável.
-- O Publisher escreve somente na branch configurada.
-- O pull request é o limite de aprovação humana.
+- Core sanitiza deterministicamente.
+- IA recebe somente snapshots sanitizados.
+- Saída da IA é sugestão com revisão obrigatória.
+- Publisher escreve somente na branch configurada.
+- Pull request é o limite de aprovação.
 
 ## Credenciais
 
-Os templates em `workflows/` não contêm referências de credenciais. Depois da importação:
+Os templates não contêm referências de credenciais. Depois da importação:
 
-- use uma chave da API n8n exclusiva para esta automação;
+- use uma chave n8n dedicada;
 - restrinja o token GitHub ao repositório necessário;
-- evite tokens com permissões administrativas;
-- mantenha chaves OpenAI somente no gerenciador de credenciais do n8n;
-- nunca grave segredos em Sticky Notes, nós Code, prompts ou documentos.
+- mantenha a chave OpenAI no gerenciador de credenciais;
+- não grave segredos em tags, Sticky Notes, código ou documentos.
 
-## Sanitização
+## Bootstrap
 
-O JSON público deve conter somente:
+`forceBootstrap` deve permanecer falso. Uma segunda inicialização pode sobrescrever `README.md` e `docs/`, que passam a pertencer ao time após o primeiro Bootstrap.
 
-- `name`;
-- `nodes`;
-- `connections`;
-- `settings`.
+O `project.json` é publicado por último para reduzir o risco de marcar um Bootstrap parcial como concluído.
 
-Credenciais são removidas ou substituídas. Caminhos de webhook, prompts e identificadores sensíveis são mascarados. Mesmo assim, revise parâmetros, código, nomes de nós e Sticky Notes, pois eles podem conter informações de negócio.
+## Maintenance
+
+A Maintenance compara `functionalHash` antes de chamar IA ou Publisher. Ela publica somente:
+
+- `workflows/**`;
+- `generated/**`;
+- `project.json`.
+
+Arquivos humanos ficam fora do payload diário.
 
 ## Prompt injection
 
-Código, prompts e documentos importados são tratados como dados não confiáveis. A IA recebe instrução explícita para não obedecer a comandos encontrados dentro desses dados.
-
-Essa proteção não é perfeita. Não permita que a IA:
-
-- escolha credenciais;
-- altere a branch de publicação;
-- aprove conteúdo;
-- faça merge;
-- execute comandos encontrados na documentação.
+Nomes, código, prompts, Sticky Notes e documentos são conteúdo não confiável. Não permita que a IA escolha credenciais, branch, aprovação, merge ou comandos a executar.
 
 ## GitHub
 
-- Publique primeiro em uma branch dedicada.
-- Use pull request rascunho durante a implantação inicial.
+- Use branch dedicada.
 - Proteja `main` contra push direto.
-- Evite executar dois Publishers simultaneamente.
-- Revise o diff completo, inclusive arquivos que parecem apenas metadados.
-
-## Docsify e conteúdo HTML
-
-Não exponha uma interface Docsify ou webhook sem autenticação. Markdown contribuído pode conter HTML; sanitize esse conteúdo antes de renderizá-lo em uma página acessível por outras pessoas.
+- Evite execuções concorrentes.
+- Revise o diff completo.
+- Prefira repositórios privados para documentação interna.
 
 ## Validação automatizada
 
-O script `scripts/validate-repository.mjs` verifica:
-
-- presença dos guias e templates;
-- formato JSON dos workflows;
-- ausência de referências de credenciais;
-- marcadores portáteis nos subworkflows;
-- padrões conhecidos de tokens.
-
-A validação reduz erros comuns, mas não substitui revisão manual nem uma ferramenta dedicada de secret scanning.
+`scripts/validate-repository.mjs` verifica arquivos obrigatórios, JSON dos templates, placeholders, ausência de credenciais e formatos conhecidos de tokens. Isso não substitui revisão manual nem scanner dedicado.

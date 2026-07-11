@@ -1,82 +1,85 @@
 # Configuração dos workflows
 
-Este documento lista os pontos que precisam ser ajustados depois da importação.
-
-## Core determinístico
+## Core
 
 Workflow: `Core - Documentação n8n (Dry Run)`
 
-| Nó | Configuração | Valor recomendado |
-| --- | --- | --- |
-| `Configuração` | `requiredTag` | `docs-internal` |
-| `Configuração` | `dryRun` | `true` |
-| `Listar workflows` | Credencial `n8n API` | A própria instância |
-
-O Core seleciona somente workflows com a tag configurada. Ele não chama IA e não escreve no GitHub.
-
-O JSON exportado contém apenas `name`, `nodes`, `connections` e `settings`. Credenciais, caminhos de webhook, prompts e identificadores sensíveis são substituídos ou removidos.
-
-## Enriquecimento com IA
-
-Workflow: `AI - Enriquecimento da Documentação n8n`
-
-| Nó | Configuração | Observação |
-| --- | --- | --- |
-| `Executar Core determinístico` | Workflow alvo | Selecione o Core importado |
-| `Modelo OpenAI` | Credencial | Configure localmente |
-| `Modelo OpenAI` | Modelo | Use um modelo disponível na conta |
-| `Modelo OpenAI` | Temperatura | Valor baixo, como `0.1` |
-
-A entrada da IA é construída a partir de `workflow.sanitized.json`. Os arquivos brutos, credenciais e dados da instância não são enviados.
-
-A saída adiciona:
-
-- resumo técnico;
-- finalidade de negócio, quando houver evidência;
-- entradas e saídas;
-- integrações;
-- riscos;
-- sugestões de troubleshooting;
-- pontos que precisam de confirmação;
-- nível de confiança;
-- arquivo `docs/ai-enrichment.md`.
-
-## Publisher GitHub
-
-Workflow: `Publisher - GitHub n8n-workflows`
-
-| Nó | Configuração | Observação |
-| --- | --- | --- |
-| `Executar core determinístico` | Workflow alvo | Selecione o Core importado |
-| `Executar enriquecimento com IA` | Workflow alvo | Selecione a IA importada |
-| `Expandir arquivos` | `owner` | Usuário ou organização do GitHub |
-| `Expandir arquivos` | `repository` | Nome do repositório |
-| `Expandir arquivos` | `branch` | Branch exclusiva para documentação |
-| `Consultar arquivo existente` | Credencial GitHub | Leitura do conteúdo |
-| `Criar ou atualizar no GitHub` | Credencial GitHub | Escrita do conteúdo |
-
-O Publisher processa um arquivo por vez. Isso evita conflitos entre os próprios itens da execução, mas não impede conflito com outra pessoa ou agente alterando o mesmo arquivo simultaneamente.
-
-Ele executa `create` quando o caminho ainda não existe e `update` usando o SHA atual quando o arquivo já existe. Arquivos extras no repositório não são removidos.
-
-## Convenção de tags
-
-Recomendação inicial:
-
-| Tag | Uso |
+| Configuração | Padrão |
 | --- | --- |
-| `docs-internal` | Inclui o workflow na geração |
-| `portfolio` | Classificação opcional; não publica por si só |
+| Tag de inclusão | `docs-internal` |
+| Prefixo de projeto | `project:` |
+| Credencial | API da própria instância n8n |
 
-Use uma tag dedicada em vez de documentar todos os workflows da instância.
+O Core exige exatamente uma tag `project:<slug>` em cada workflow com `docs-internal`. Ele agrupa componentes, sanitiza parâmetros, descobre referências diretas de subworkflows e calcula o `functionalHash` agregado.
 
-## Branches
+## Papéis dos componentes
 
-Use uma branch como `docs/generated` ou `test/n8n-docs`. O Publisher não deve escrever diretamente na branch principal.
+| Tag | Papel |
+| --- | --- |
+| `component:agent` | Agente principal |
+| `component:tool` | Tool chamada por agente |
+| `component:subflow` | Subworkflow interno |
+| Sem tag de papel | Workflow genérico |
 
-Fluxo recomendado:
+Uma referência por ID em `Execute Workflow` ou `Workflow Tool` aparece em `dependencies`. Referências dinâmicas por expressão precisam de revisão manual.
 
-1. Publisher atualiza a branch.
-2. GitHub abre ou atualiza um pull request.
-3. Uma pessoa revisa os arquivos.
-4. O merge promove a documentação aprovada.
+## IA
+
+| `aiMode` | Comportamento |
+| --- | --- |
+| `never` | Nunca chama IA |
+| `bootstrap` | IA somente na documentação inicial |
+| `on-change` | IA no Bootstrap e em mudanças funcionais |
+| `manual` | IA fora dos orquestradores automáticos |
+
+No Bootstrap, a IA escreve `docs/ai-enrichment.md`. Na Maintenance com `on-change`, escreve `generated/ai-change-analysis.md`.
+
+## Publisher
+
+O Publisher recebe:
+
+```json
+{
+  "owner": "usuario",
+  "repository": "repositorio",
+  "branch": "docs/generated",
+  "projectSlug": "meu-projeto",
+  "files": {
+    "projects/meu-projeto/project.json": "..."
+  }
+}
+```
+
+Ele aceita apenas caminhos sob `projects/`, rejeita segmentos `..`, compara o conteúdo remoto e publica serialmente somente arquivos alterados. Não chama Core nem IA e não remove arquivos extras.
+
+## Bootstrap
+
+Configure em `Configuração Bootstrap`:
+
+- `projectSlug`;
+- `aiMode`;
+- `owner`, `repository` e `branch`;
+- `forceBootstrap`, que deve permanecer `false`.
+
+O Bootstrap publica arquivos humanos e técnicos. Se `project.json` já existir, ele falha para evitar sobrescrever documentação mantida pelo time.
+
+## Maintenance
+
+Configure em `Configuração Maintenance`:
+
+- `requiredTag` e `projectTagPrefix`;
+- `owner`, `repository` e `branch`.
+
+O Schedule padrão é `50 23 * * *`, no fuso `America/Sao_Paulo`. Projetos sem Bootstrap são reportados como `needs-bootstrap` e ignorados.
+
+## Propriedade dos caminhos
+
+| Caminho | Responsável |
+| --- | --- |
+| `README.md` | Pessoas e agentes após o Bootstrap |
+| `docs/**` | Pessoas e agentes após o Bootstrap |
+| `workflows/**` | Maintenance |
+| `generated/**` | Maintenance |
+| `project.json` | Maintenance |
+
+Use branch dedicada e revisão por pull request.

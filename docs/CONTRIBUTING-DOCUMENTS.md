@@ -1,72 +1,51 @@
 # Documentos contribuídos
 
-Arquivos escritos por pessoas, agentes CLI ou ferramentas de navegador podem complementar a documentação automática sem quebrar o pipeline.
+Depois do Bootstrap, `README.md` e `docs/` pertencem ao time. Pessoas, Codex, Claude e outras ferramentas podem editar esses caminhos sem que a Maintenance os sobrescreva.
 
 ## Estrutura recomendada
 
 ```text
 projects/<projeto>/
-├── docs/
-│   ├── contributed/
-│   │   ├── human/
-│   │   ├── agents/
-│   │   └── conversations/
-│   ├── runbook.md
-│   ├── troubleshooting.md
-│   └── ai-enrichment.md
-└── sources/
-    └── conversation-exports/
+├── README.md
+└── docs/
+    ├── runbook.md
+    ├── troubleshooting.md
+    ├── ai-enrichment.md
+    └── contributed/
+        ├── human/
+        ├── agents/
+        └── conversations/
 ```
 
-Use `sources/` para arquivos originais que não devem ser publicados diretamente. Converta o material revisado para Markdown em `docs/contributed/`.
+Use `sources/conversation-exports/` somente quando precisar guardar originais revisados. Não publique exportações completas sem analisar anexos, dados pessoais e segredos.
 
-## Arquivos reservados
+## Caminhos reservados para automação
 
-Não edite manualmente estes caminhos, pois o Publisher poderá sobrescrevê-los:
+Não edite manualmente:
 
-- `README.md`
-- `workflow.sanitized.json`
-- `architecture.mmd`
-- `metadata.json`
-- `AI_PROMPT.md`
-- `docs/runbook.md`
-- `docs/troubleshooting.md`
-- `docs/ai-enrichment.md`
+- `workflows/**`;
+- `generated/**`;
+- `project.json`.
 
-## Metadados de proveniência
+Esses caminhos representam o estado técnico atual e são atualizados pela Maintenance.
 
-Adicione front matter aos documentos contribuídos:
+## Proveniência
 
 ```yaml
 ---
 origin: codex
 author: nome-ou-equipe
-created_at: 2026-07-10
+created_at: 2026-07-11
 review_status: pending
 source_file: conversa-original.html
 ---
 ```
 
-Valores possíveis para `origin` incluem `human`, `codex`, `claude`, `chatgpt` e `other`.
+## Limites atuais
 
-## Comportamento atual
+- Documentos contribuídos não são enviados automaticamente à IA.
+- A Maintenance não altera arquivos humanos.
+- O Publisher não remove arquivos extras.
+- Alterações concorrentes no mesmo arquivo ainda podem causar conflito.
 
-- O Publisher não remove arquivos extras existentes no repositório.
-- Documentos em `docs/contributed/` permanecem preservados.
-- O Core e a IA ainda não leem automaticamente esses documentos.
-- Alterações no mesmo arquivo e na mesma branch durante uma execução podem causar conflito.
-
-## Requisitos para ingestão automática futura
-
-Antes de enviar documentos externos para a IA ou o Publisher, a etapa de ingestão deve:
-
-1. Aceitar inicialmente apenas Markdown ou texto simples.
-2. Rejeitar caminhos absolutos e segmentos `..`.
-3. Aplicar limite de tamanho.
-4. Procurar tokens, credenciais, dados pessoais e URLs privadas.
-5. Remover HTML e scripts perigosos.
-6. Tratar o texto como conteúdo não confiável contra prompt injection.
-7. Registrar origem e estado de revisão.
-8. Exigir aprovação humana antes do merge.
-
-Não publique exportações completas de conversas sem revisar anexos, instruções ocultas, informações pessoais e segredos presentes no histórico.
+Antes de ingerir documentos automaticamente, valide caminho, tamanho, extensão, segredos, HTML, dados pessoais e prompt injection.
