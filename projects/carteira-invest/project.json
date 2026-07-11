@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "projectSlug": "carteira-invest",
+  "title": "Carteira Invest",
+  "sourceOfTruth": "github",
+  "bootstrapCompleted": true,
+  "aiMode": "bootstrap",
+  "currentVersion": "2026.07.11.1",
+  "functionalHash": "02ce5d7db79b5023",
+  "workflows": [
+    {
+      "workflowId": "nGd7cvZdFkR70hff",
+      "workflowSlug": "carteira-de-investimentos",
+      "componentId": "workflow.carteira-de-investimentos",
+      "role": "workflow",
+      "name": "Carteira de Investimentos",
+      "tags": [
+        "docs-internal",
+        "project:carteira-invest"
+      ],
+      "nodeCount": 17,
+      "functionalHash": "25265ea4b3034556",
+      "sourceUpdatedAt": "2026-07-11T20:45:06.483Z"
+    }
+  ],
+  "dependencies": [],
+  "reviewRequired": true,
+  "bootstrapAt": "2026-07-11T21:20:14.278Z"
+}
