@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "projectSlug": "mvp-docs",
+  "title": "Mvp Docs",
+  "sourceOfTruth": "github",
+  "bootstrapCompleted": true,
+  "aiMode": "bootstrap",
+  "currentVersion": "2026.07.11.1",
+  "functionalHash": "845acb25ed3264cb",
+  "workflows": [
+    {
+      "workflowId": "6ckt8NIDx0j2WjMf",
+      "workflowSlug": "mvp-documentacao-interna-n8n-local",
+      "componentId": "workflow.mvp-documentacao-interna-n8n-local",
+      "role": "workflow",
+      "name": "MVP - Documentação Interna n8n (Local)",
+      "tags": [
+        "docs-internal",
+        "project:mvp-docs"
+      ],
+      "nodeCount": 60,
+      "functionalHash": "23f83edaeaf929f4",
+      "sourceUpdatedAt": "2026-07-10T15:21:12.134Z"
+    }
+  ],
+  "dependencies": [],
+  "reviewRequired": true,
+  "bootstrapAt": "2026-07-11T20:26:49.963Z"
+}
