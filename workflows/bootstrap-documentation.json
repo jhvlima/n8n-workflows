@@ -35,7 +35,7 @@
         80
       ],
       "parameters": {
-        "jsCode": "const input=$input.first()?.json??{};\n  return [{json:{\n    projectSlug:String(input.projectSlug??'YOUR_PROJECT_SLUG').trim().toLowerCase(),\n    aiMode:String(input.aiMode??'bootstrap'),\n    owner:String(input.owner??'YOUR_GITHUB_USER'),\n    repository:String(input.repository??'YOUR_REPOSITORY'),\n    branch:String(input.branch??'docs/generated'),\n    forceBootstrap:Boolean(input.forceBootstrap??false),\n    documentationMode:'bootstrap'\n  }}];"
+        "jsCode": "const input=$input.first()?.json??{};\n  return [{json:{\n    projectSlug:String(input.projectSlug??'YOUR_PROJECT_SLUG').trim().toLowerCase(),\n    aiMode:'bootstrap',\n    owner:String(input.owner??'YOUR_GITHUB_USER'),\n    repository:String(input.repository??'YOUR_REPOSITORY'),\n    branch:String(input.branch??'docs/generated'),\n    forceBootstrap:Boolean(input.forceBootstrap??false),\n    documentationMode:'bootstrap'\n  }}];"
       }
     },
     {
@@ -117,40 +117,6 @@
       }
     },
     {
-      "id": "cca0cf36-889e-405b-b488-fe5703e557f6",
-      "name": "Usar IA no Bootstrap?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1440,
-        80
-      ],
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "combinator": "and",
-          "conditions": [
-            {
-              "id": "1d90a109-ee0f-4f39-a77e-95543fd5057e",
-              "operator": {
-                "name": "filter.operator.equals",
-                "type": "string",
-                "operation": "equals"
-              },
-              "leftValue": "={{ [\"bootstrap\",\"on-change\"].includes($json.aiMode) ? \"true\" : \"false\" }}",
-              "rightValue": "true"
-            }
-          ]
-        },
-        "options": {}
-      }
-    },
-    {
       "id": "2db668f5-40e3-4e66-80e6-78a3cb239b27",
       "name": "Executar enriquecimento inicial",
       "type": "n8n-nodes-base.executeWorkflow",
@@ -228,7 +194,7 @@
         -440
       ],
       "parameters": {
-        "content": "## Bootstrap — primeira publicação\n\n- Configure projectSlug e aiMode.\n- Bloqueia reexecução quando project.json já existe.\n- Chama Core e IA opcional.\n- Publica arquivos humanos e técnicos.\n- Permanece manual e inativo.\n- forceBootstrap exige revisão explícita.",
+        "content": "## Bootstrap — primeira publicação\n\n- Configure projectSlug e o destino GitHub.\n- Bloqueia reexecução quando project.json já existe.\n- Chama o Core determinístico e depois a IA obrigatoriamente.\n- Publica README.md, docs/architecture.mmd, workflows/ e project.json.\n- Permanece manual e inativo.\n- forceBootstrap exige revisão explícita.",
         "height": 360,
         "width": 680,
         "color": 3
@@ -306,25 +272,7 @@
       "main": [
         [
           {
-            "node": "Usar IA no Bootstrap?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Usar IA no Bootstrap?": {
-      "main": [
-        [
-          {
             "node": "Executar enriquecimento inicial",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Preparar publicação inicial",
             "type": "main",
             "index": 0
           }

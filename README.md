@@ -9,7 +9,7 @@ Este repositório contém um pipeline reutilizável para agrupar workflows n8n e
 | Workflow | Responsabilidade | Template |
 | --- | --- | --- |
 | Core | Agrupa workflows pelas tags `docs-internal` e `project:<slug>`, sanitiza e calcula o hash funcional | [core-documentation.json](workflows/core-documentation.json) |
-| IA | Enriquece um projeto sanitizado no Bootstrap ou em mudanças com `aiMode: on-change` | [ai-enrichment.json](workflows/ai-enrichment.json) |
+| IA | Gera `README.md` e `docs/architecture.mmd` a partir do projeto sanitizado | [ai-enrichment.json](workflows/ai-enrichment.json) |
 | Publisher | Recebe caminhos completos, ignora conteúdo idêntico e publica serialmente | [github-publisher.json](workflows/github-publisher.json) |
 | Bootstrap | Cria uma vez os arquivos humanos e técnicos de um projeto | [bootstrap-documentation.json](workflows/bootstrap-documentation.json) |
 | Maintenance | Compara hashes diariamente e atualiza somente arquivos técnicos | [daily-maintenance.json](workflows/daily-maintenance.json) |
@@ -22,7 +22,7 @@ O fluxo foi validado com n8n `2.28.6`.
 flowchart TD
     T[docs-internal + project:slug] --> C[Core]
     C --> B[Bootstrap manual]
-    B --> A[IA conforme aiMode]
+    B --> A[IA obrigatória]
     A --> P[Publisher]
     P --> G[GitHub]
 
@@ -34,7 +34,7 @@ flowchart TD
     Q --> P
 ```
 
-Depois do Bootstrap, `README.md` e `docs/` pertencem ao time. A Maintenance atualiza apenas `workflows/`, `generated/` e `project.json`.
+Depois do Bootstrap, `README.md` e `docs/architecture.mmd` pertencem ao time. A Maintenance atualiza apenas `workflows/` e `project.json`.
 
 ## Identificação dos projetos
 
@@ -62,7 +62,7 @@ Vários workflows com o mesmo `project:<slug>` formam um único projeto e compar
 3. Selecione novamente os subworkflows nos nós `Execute Workflow`.
 4. Configure usuário, repositório e branch no Bootstrap e na Maintenance.
 5. Aplique `docs-internal` e `project:<slug>` aos workflows de negócio.
-6. Ative Core, Publisher e Maintenance. Ative a IA apenas se algum projeto usar IA.
+6. Ative Core, IA, Publisher e Maintenance.
 7. Execute o Bootstrap manualmente para cada projeto novo.
 
 Consulte [Instalação](docs/INSTALLATION.md), [Configuração](docs/CONFIGURATION.md) e [Ciclo de vida](docs/LIFECYCLE.md).
@@ -71,22 +71,15 @@ Consulte [Instalação](docs/INSTALLATION.md), [Configuração](docs/CONFIGURATI
 
 ```text
 projects/<project-slug>/
-├── project.json
 ├── README.md
+├── docs/
+│   └── architecture.mmd
 ├── workflows/
 │   └── <workflow>.sanitized.json
-├── generated/
-│   ├── architecture.mmd
-│   ├── workflow-index.md
-│   └── ai-change-analysis.md
-└── docs/
-    ├── runbook.md
-    ├── troubleshooting.md
-    ├── ai-enrichment.md
-    └── contributed/
+└── project.json
 ```
 
-O exemplo do novo ciclo está em [projects/mvp-docs](projects/mvp-docs/). O diretório antigo `mvp-documentacao-interna-n8n-local` permanece apenas como referência do protótipo anterior.
+A pasta `projects/` é preenchida pelo Bootstrap; cada subdiretório representa um projeto identificado por `project:<slug>`.
 
 ## Guias
 

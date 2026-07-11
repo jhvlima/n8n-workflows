@@ -6,8 +6,8 @@ O Bootstrap é executado uma vez por projeto:
 
 1. Valida que `project.json` ainda não existe.
 2. Chama o Core filtrando `projectSlug`.
-3. Executa IA conforme `aiMode`.
-4. Publica arquivos humanos e técnicos.
+3. Executa a IA para gerar `README.md` e `docs/architecture.mmd`.
+4. Publica os dois documentos e os arquivos técnicos.
 5. Grava `project.json` por último com `bootstrapCompleted: true`.
 
 Depois disso, `README.md` e `docs/` não pertencem mais à automação diária.
@@ -21,8 +21,9 @@ A Maintenance roda diariamente às 23:50:
 3. Compara o hash remoto ao hash calculado.
 4. Hash igual: registra `skipped`.
 5. Hash diferente: prepara somente arquivos técnicos.
-6. `aiMode: on-change`: produz análise em `generated/`.
-7. Publisher sincroniza os arquivos e grava `project.json` por último.
+6. Publisher sincroniza `workflows/` e grava `project.json` por último.
+
+A Maintenance nunca chama IA e nunca altera `README.md` ou `docs/`.
 
 ## Versão
 

@@ -25,14 +25,7 @@ Uma referência por ID em `Execute Workflow` ou `Workflow Tool` aparece em `depe
 
 ## IA
 
-| `aiMode` | Comportamento |
-| --- | --- |
-| `never` | Nunca chama IA |
-| `bootstrap` | IA somente na documentação inicial |
-| `on-change` | IA no Bootstrap e em mudanças funcionais |
-| `manual` | IA fora dos orquestradores automáticos |
-
-No Bootstrap, a IA escreve `docs/ai-enrichment.md`. Na Maintenance com `on-change`, escreve `generated/ai-change-analysis.md`.
+A IA é uma etapa obrigatória do Bootstrap e escreve `README.md` e `docs/architecture.mmd`. Ela não participa da Maintenance diária. O manifesto mantém `aiMode: bootstrap` para registrar essa política.
 
 ## Publisher
 
@@ -57,7 +50,6 @@ Ele aceita apenas caminhos sob `projects/`, rejeita segmentos `..`, compara o co
 Configure em `Configuração Bootstrap`:
 
 - `projectSlug`;
-- `aiMode`;
 - `owner`, `repository` e `branch`;
 - `forceBootstrap`, que deve permanecer `false`.
 
@@ -79,7 +71,6 @@ O Schedule padrão é `50 23 * * *`, no fuso `America/Sao_Paulo`. Projetos sem B
 | `README.md` | Pessoas e agentes após o Bootstrap |
 | `docs/**` | Pessoas e agentes após o Bootstrap |
 | `workflows/**` | Maintenance |
-| `generated/**` | Maintenance |
 | `project.json` | Maintenance |
 
 Use branch dedicada e revisão por pull request.

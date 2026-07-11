@@ -27,10 +27,9 @@ O `project.json` é publicado por último para reduzir o risco de marcar um Boot
 
 ## Maintenance
 
-A Maintenance compara `functionalHash` antes de chamar IA ou Publisher. Ela publica somente:
+A Maintenance compara `functionalHash` antes de chamar o Publisher. Ela publica somente:
 
 - `workflows/**`;
-- `generated/**`;
 - `project.json`.
 
 Arquivos humanos ficam fora do payload diário.

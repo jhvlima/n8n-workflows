@@ -7,13 +7,10 @@ flowchart TD
     T[Tags docs-internal e project:slug] --> C[Core N:1]
     C --> B[Bootstrap manual]
     C --> M[Maintenance diária]
-    B --> A[IA opcional]
-    B --> P[Publisher]
+    B --> A[IA obrigatória]
     M --> D{Hash mudou?}
     D -->|não| S[Skip]
-    D -->|sim| O{aiMode on-change?}
-    O -->|sim| A
-    O -->|não| P
+    D -->|sim| P
     A --> P
     P --> G[GitHub monorepo]
 ```
@@ -27,13 +24,9 @@ flowchart TD
   "functionalHash": "hash-agregado",
   "components": [],
   "dependencies": [],
-  "humanFiles": {
-    "README.md": "...",
-    "docs/runbook.md": "..."
-  },
+  "humanFiles": {},
   "technicalFiles": {
     "workflows/agente.sanitized.json": "...",
-    "generated/architecture.mmd": "...",
     "project.json": "..."
   },
   "reviewRequired": true
@@ -44,16 +37,18 @@ O hash agrega os hashes funcionais de todos os componentes e suas dependências.
 
 ## Agentes, tools e subworkflows
 
-O `project.json` registra cada componente com `componentId`, papel, hash e ID local. Dependências diretas formam relações `usesTool` ou `callsSubflow` e alimentam `generated/architecture.mmd`.
+O `project.json` registra cada componente com `componentId`, papel, hash e ID local. Dependências diretas formam relações `usesTool` ou `callsSubflow` e são fornecidas à IA para a criação da arquitetura.
 
 Uma tool compartilhada é documentada uma vez e pode aparecer como dependência de vários agentes.
 
 ## Contrato da IA
 
-A IA preserva `humanFiles` e `technicalFiles` e acrescenta `aiEnrichment` estruturado. O destino do Markdown depende de `documentationMode`:
+A IA recebe somente o snapshot sanitizado do Core e produz exatamente dois arquivos humanos no Bootstrap:
 
-- `bootstrap` → `docs/ai-enrichment.md`;
-- `maintenance` → `generated/ai-change-analysis.md`.
+- `README.md`, em Markdown e português do Brasil;
+- `docs/architecture.mmd`, como Mermaid puro.
+
+A Maintenance não chama a IA. Depois do Bootstrap, esses documentos podem ser revisados pelo time sem risco de sobrescrita diária.
 
 ## Contrato do Publisher
 
@@ -66,5 +61,5 @@ Como a escrita é serial, os orquestradores enviam `project.json` por último. A
 - Core falhou: nada é publicado.
 - IA falhou: a publicação do projeto é interrompida.
 - Publisher falhou antes de `project.json`: a próxima execução ainda pode recuperar os arquivos.
-- Hash igual: Maintenance não chama IA nem Publisher.
+- Hash igual: Maintenance não chama Publisher.
 - Projeto sem `project.json` concluído: Maintenance exige Bootstrap.

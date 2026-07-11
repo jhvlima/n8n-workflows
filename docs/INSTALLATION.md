@@ -6,7 +6,7 @@
 - Chave da API n8n.
 - Repositório e branch GitHub para a documentação.
 - Credencial GitHub com leitura e escrita de conteúdo.
-- Credencial OpenAI somente quando algum projeto usar IA.
+- Credencial OpenAI para gerar os dois documentos do Bootstrap.
 
 O projeto foi testado no n8n `2.28.6`.
 
@@ -36,7 +36,7 @@ Em Docker, a URL da credencial n8n precisa ser acessível de dentro do container
 
 - IA: `Executar Core determinístico` → Core.
 - Bootstrap: selecione Core, IA e Publisher.
-- Maintenance: selecione Core, IA e Publisher.
+- Maintenance: selecione Core e Publisher.
 
 Os IDs dos templates são placeholders e precisam ser selecionados novamente após a importação.
 
@@ -48,7 +48,6 @@ Nos nós `Configuração Bootstrap` e `Configuração Maintenance`, ajuste:
 - repositório;
 - branch de documentação;
 - slug do projeto no Bootstrap;
-- política `aiMode`.
 
 Crie a branch antes da primeira publicação. Não publique diretamente em `main` durante a implantação.
 
@@ -66,7 +65,7 @@ Use opcionalmente `component:agent`, `component:tool` ou `component:subflow`.
 ## 6. Ative e teste
 
 - Ative Core e Publisher, pois são subworkflows.
-- Ative a IA quando `aiMode` puder chamá-la.
+- Ative a IA, pois todo Bootstrap depende dela.
 - Mantenha Bootstrap inativo e execute-o manualmente.
 - Ative Maintenance somente depois de validar o Bootstrap.
 - Confirme o fuso `America/Sao_Paulo` e o Schedule das 23:50.
@@ -74,11 +73,10 @@ Use opcionalmente `component:agent`, `component:tool` ou `component:subflow`.
 ## 7. Primeiro projeto
 
 1. Configure `projectSlug` no Bootstrap.
-2. Escolha `aiMode`: `never`, `bootstrap`, `on-change` ou `manual`.
-3. Execute o Bootstrap.
-4. Revise `projects/<slug>/` no GitHub.
-5. Faça uma edição humana em `README.md`.
-6. Altere tecnicamente um workflow e execute a Maintenance manualmente.
-7. Confirme que o README foi preservado.
+2. Execute o Bootstrap.
+3. Revise `README.md` e `docs/architecture.mmd` no GitHub.
+4. Faça uma edição humana em `README.md`.
+5. Altere tecnicamente um workflow e execute a Maintenance manualmente.
+6. Confirme que os documentos humanos foram preservados.
 
 Leia [Segurança](SECURITY.md) antes de ativar a agenda.

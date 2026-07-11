@@ -1,1 +1,0 @@
-Revise a documentação de MVP - Documentação Interna n8n (Local) sem inventar responsáveis, resultados, SLA ou regras de negócio. Liste dúvidas para revisão humana.

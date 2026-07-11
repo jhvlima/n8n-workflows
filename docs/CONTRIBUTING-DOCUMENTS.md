@@ -8,13 +8,8 @@ Depois do Bootstrap, `README.md` e `docs/` pertencem ao time. Pessoas, Codex, Cl
 projects/<projeto>/
 ├── README.md
 └── docs/
-    ├── runbook.md
-    ├── troubleshooting.md
-    ├── ai-enrichment.md
-    └── contributed/
-        ├── human/
-        ├── agents/
-        └── conversations/
+    ├── architecture.mmd
+    └── <outros-documentos-do-time>.md
 ```
 
 Use `sources/conversation-exports/` somente quando precisar guardar originais revisados. Não publique exportações completas sem analisar anexos, dados pessoais e segredos.
@@ -24,7 +19,6 @@ Use `sources/conversation-exports/` somente quando precisar guardar originais re
 Não edite manualmente:
 
 - `workflows/**`;
-- `generated/**`;
 - `project.json`.
 
 Esses caminhos representam o estado técnico atual e são atualizados pela Maintenance.
