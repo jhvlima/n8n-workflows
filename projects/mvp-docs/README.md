@@ -15,3 +15,7 @@ Consulte generated/architecture.mmd para o grafo técnico atualizado automaticam
 - Edite livremente README.md e a pasta docs/.
 - A rotina diária atualiza somente workflows/, generated/ e project.json.
 - Toda alteração automática deve passar por revisão.
+
+## Atualização humana de teste
+
+Este trecho simula uma edição mantida por uma pessoa e não pode ser sobrescrito pela Maintenance.
