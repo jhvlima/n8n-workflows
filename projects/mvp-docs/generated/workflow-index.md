@@ -1,3 +1,3 @@
 # Índice técnico — Mvp Docs
 
-- **MVP - Documentação Interna n8n (Local)** — workflow — 60 nós
+- **MVP - Documentação Interna n8n (Local)** — workflow — 61 nós
