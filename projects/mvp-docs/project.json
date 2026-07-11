@@ -5,8 +5,8 @@
   "sourceOfTruth": "github",
   "bootstrapCompleted": true,
   "aiMode": "bootstrap",
-  "currentVersion": "2026.07.11.1",
-  "functionalHash": "845acb25ed3264cb",
+  "currentVersion": "2026.07.11.2",
+  "functionalHash": "8a2f34e4d0f40732",
   "workflows": [
     {
       "workflowId": "6ckt8NIDx0j2WjMf",
@@ -18,12 +18,13 @@
         "docs-internal",
         "project:mvp-docs"
       ],
-      "nodeCount": 60,
-      "functionalHash": "23f83edaeaf929f4",
-      "sourceUpdatedAt": "2026-07-10T15:21:12.134Z"
+      "nodeCount": 61,
+      "functionalHash": "767ed7ec26343d2e",
+      "sourceUpdatedAt": "2026-07-11T20:29:55.520Z"
     }
   ],
   "dependencies": [],
   "reviewRequired": true,
-  "bootstrapAt": "2026-07-11T20:29:10.843Z"
+  "previousFunctionalHash": "845acb25ed3264cb",
+  "lastMaintenanceAt": "2026-07-11T20:30:19.026Z"
 }
