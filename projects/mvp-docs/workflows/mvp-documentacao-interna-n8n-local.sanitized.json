@@ -1323,6 +1323,22 @@
         "height": 429.7891698152571,
         "width": 639.8696984316115
       }
+    },
+    {
+      "id": "d34a6a8a-f06a-418b-9f81-94979b649856",
+      "name": "Verificação Maintenance",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        9600,
+        7600
+      ],
+      "parameters": {
+        "content": "## Verificação técnica\n\nEste Sticky Note foi adicionado para validar a detecção diária de mudanças do projeto.",
+        "height": 220,
+        "width": 420,
+        "color": 5
+      }
     }
   ],
   "connections": {
