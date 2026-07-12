@@ -42,7 +42,7 @@
         80
       ],
       "parameters": {
-        "jsCode": "const input=$input.first()?.json??{};\n  return [{json:{\n    requiredTag:String(input.requiredTag??'docs-internal'),\n    projectTagPrefix:String(input.projectTagPrefix??'project:'),\n    projectSlug:String(input.projectSlug??'YOUR_PROJECT_SLUG'),\n    aiMode:'bootstrap',\n    owner:String(input.owner??'YOUR_GITHUB_USER'),\n    repository:String(input.repository??'YOUR_REPOSITORY'),\n    branch:String(input.branch??'docs/generated'),\n    documentationMode:'maintenance'\n  }}];"
+        "jsCode": "const input=$input.first()?.json??{};\n  return [{json:{\n    requiredTag:String(input.requiredTag??'docs-internal'),\n    projectTagPrefix:String(input.projectTagPrefix??'project:'),\n    projectSlug:String(input.projectSlug??''),\n    aiMode:'bootstrap',\n    owner:String(input.owner??'YOUR_GITHUB_USER'),\n    repository:String(input.repository??'YOUR_REPOSITORY'),\n    branch:String(input.branch??'docs/generated'),\n    documentationMode:'maintenance'\n  }}];"
       }
     },
     {
@@ -423,6 +423,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
   }
 }

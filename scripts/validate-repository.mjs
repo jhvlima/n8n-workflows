@@ -20,6 +20,7 @@ const requiredFiles = [
   'workflows/ai-enrichment.json',
   'workflows/github-publisher.json',
   'workflows/bootstrap-documentation.json',
+  'workflows/bootstrap-form.json',
   'workflows/daily-maintenance.json',
 ];
 

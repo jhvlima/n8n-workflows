@@ -2,17 +2,6 @@
   "name": "Publisher - GitHub n8n-workflows",
   "nodes": [
     {
-      "parameters": {},
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        -176,
-        0
-      ],
-      "id": "8ab0c44d-5ef6-476f-b5c9-c4bc25d2eee2",
-      "name": "Testar Publisher manualmente"
-    },
-    {
       "parameters": {
         "jsCode": "const inputs=$input.all().map(item=>item.json);\n  const output=[];\n  for(const publication of inputs){\n    const owner=String(publication.owner??'').trim();\n    const repository=String(publication.repository??'').trim();\n    const branch=String(publication.branch??'').trim();\n    if(!owner||!repository||!branch) throw new Error('owner, repository e branch são obrigatórios.');\n    const entries=Array.isArray(publication.files)\n      ? publication.files.map(file=>[file.path,file.content])\n      : Object.entries(publication.files??{});\n    for(const [pathValue,contentValue] of entries){\n      const filePath=String(pathValue??'').replace(/^\\/+/, '');\n      if(!filePath.startsWith('projects/')||filePath.split('/').includes('..')){\n        throw new Error('Caminho de publicação inválido: '+filePath);\n      }\n      if(typeof contentValue!=='string') throw new Error('Conteúdo deve ser texto: '+filePath);\n      output.push({json:{\n        owner,repository,branch,\n        projectSlug:publication.projectSlug,\n        path:filePath,\n        desiredContent:contentValue,\n        commitMessage:String(publication.commitMessage??('docs('+publication.projectSlug+'): sync '+filePath))\n      }});\n    }\n  }\n  if(output.length===0) throw new Error('Nenhum arquivo recebido para publicação.');\n  return output;"
       },
@@ -222,17 +211,6 @@
     }
   ],
   "connections": {
-    "Testar Publisher manualmente": {
-      "main": [
-        [
-          {
-            "node": "Expandir arquivos",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Receber arquivos para publicação": {
       "main": [
         [

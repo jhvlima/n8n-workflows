@@ -25,6 +25,8 @@ Os templates não contêm referências de credenciais. Depois da importação:
 
 O `project.json` é publicado por último para reduzir o risco de marcar um Bootstrap parcial como concluído.
 
+O formulário de Bootstrap exige autenticação de usuário do n8n, aceita somente slugs descobertos pelo Core e não permite enviar `forceBootstrap`, repositório ou branch.
+
 ## Maintenance
 
 A Maintenance compara `functionalHash` antes de chamar o Publisher. Ela publica somente:

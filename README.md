@@ -11,7 +11,8 @@ Este repositório contém um pipeline reutilizável para agrupar workflows n8n e
 | Core | Agrupa workflows pelas tags `docs-internal` e `project:<slug>`, sanitiza e calcula o hash funcional | [core-documentation.json](workflows/core-documentation.json) |
 | IA | Gera `README.md` e `docs/architecture.mmd` a partir do projeto sanitizado | [ai-enrichment.json](workflows/ai-enrichment.json) |
 | Publisher | Recebe caminhos completos, ignora conteúdo idêntico e publica serialmente | [github-publisher.json](workflows/github-publisher.json) |
-| Bootstrap | Cria uma vez os arquivos humanos e técnicos de um projeto | [bootstrap-documentation.json](workflows/bootstrap-documentation.json) |
+| Formulário | Lista os projetos documentáveis e coleta a escolha do usuário autenticado | [bootstrap-form.json](workflows/bootstrap-form.json) |
+| Bootstrap | Recebe o projeto escolhido e cria uma vez os arquivos humanos e técnicos | [bootstrap-documentation.json](workflows/bootstrap-documentation.json) |
 | Maintenance | Compara hashes diariamente e atualiza somente arquivos técnicos | [daily-maintenance.json](workflows/daily-maintenance.json) |
 
 O fluxo foi validado com n8n `2.28.6`.
@@ -21,7 +22,8 @@ O fluxo foi validado com n8n `2.28.6`.
 ```mermaid
 flowchart TD
     T[docs-internal + project:slug] --> C[Core]
-    C --> B[Bootstrap manual]
+    C --> F[Formulário autenticado]
+    F --> B[Bootstrap]
     B --> A[IA obrigatória]
     A --> P[Publisher]
     P --> G[GitHub]
@@ -57,13 +59,13 @@ Vários workflows com o mesmo `project:<slug>` formam um único projeto e compar
 
 ## Instalação rápida
 
-1. Importe os cinco templates da pasta [workflows](workflows/).
+1. Importe os seis templates da pasta [workflows](workflows/).
 2. Configure as credenciais n8n, OpenAI e GitHub.
 3. Selecione novamente os subworkflows nos nós `Execute Workflow`.
 4. Configure usuário, repositório e branch no Bootstrap e na Maintenance.
 5. Aplique `docs-internal` e `project:<slug>` aos workflows de negócio.
-6. Ative Core, IA, Publisher e Maintenance.
-7. Execute o Bootstrap manualmente para cada projeto novo.
+6. Ative Core, IA, Publisher, Bootstrap, Formulário e Maintenance.
+7. Abra o formulário e escolha o projeto para executar o Bootstrap.
 
 Consulte [Instalação](docs/INSTALLATION.md), [Configuração](docs/CONFIGURATION.md) e [Ciclo de vida](docs/LIFECYCLE.md).
 
@@ -92,7 +94,7 @@ A pasta `projects/` é preenchida pelo Bootstrap; cada subdiretório representa 
 
 ## Manutenção dos templates
 
-Preencha a URL, a chave da API e os cinco IDs em `.env`:
+Preencha a URL, a chave da API e os seis IDs em `.env`:
 
 ```bash
 set -a

@@ -10,6 +10,7 @@ const requiredEnvironment = [
   'N8N_AI_WORKFLOW_ID',
   'N8N_PUBLISHER_WORKFLOW_ID',
   'N8N_BOOTSTRAP_WORKFLOW_ID',
+  'N8N_BOOTSTRAP_FORM_WORKFLOW_ID',
   'N8N_MAINTENANCE_WORKFLOW_ID',
 ];
 
@@ -24,6 +25,7 @@ const workflowIds = {
   ai: process.env.N8N_AI_WORKFLOW_ID,
   publisher: process.env.N8N_PUBLISHER_WORKFLOW_ID,
   bootstrap: process.env.N8N_BOOTSTRAP_WORKFLOW_ID,
+  bootstrapForm: process.env.N8N_BOOTSTRAP_FORM_WORKFLOW_ID,
   maintenance: process.env.N8N_MAINTENANCE_WORKFLOW_ID,
 };
 
@@ -32,6 +34,7 @@ const outputFiles = {
   ai: 'ai-enrichment.json',
   publisher: 'github-publisher.json',
   bootstrap: 'bootstrap-documentation.json',
+  bootstrapForm: 'bootstrap-form.json',
   maintenance: 'daily-maintenance.json',
 };
 
@@ -70,11 +73,13 @@ function sanitizeNode(node, workflowKind) {
   delete clean.credentials;
 
   if (clean.type === 'n8n-nodes-base.executeWorkflow') {
-    const target = /publicar/i.test(clean.name)
-      ? 'publisher'
-      : /ia|enriquecimento/i.test(clean.name)
-        ? 'ai'
-        : 'core';
+    const target = /bootstrap/i.test(clean.name)
+      ? 'bootstrap'
+      : /publicar/i.test(clean.name)
+        ? 'publisher'
+        : /ia|enriquecimento/i.test(clean.name)
+          ? 'ai'
+          : 'core';
     const targets = {
       core: {
         placeholder: 'SELECT_CORE_WORKFLOW_AFTER_IMPORT',
@@ -88,6 +93,10 @@ function sanitizeNode(node, workflowKind) {
         placeholder: 'SELECT_PUBLISHER_WORKFLOW_AFTER_IMPORT',
         name: 'Publisher - GitHub n8n-workflows',
       },
+      bootstrap: {
+        placeholder: 'SELECT_BOOTSTRAP_WORKFLOW_AFTER_IMPORT',
+        name: 'Bootstrap - Documentação n8n',
+      },
     };
 
     clean.parameters.workflowId = {
@@ -98,9 +107,8 @@ function sanitizeNode(node, workflowKind) {
     };
   }
 
-  if (['bootstrap', 'maintenance'].includes(workflowKind) && clean.type === 'n8n-nodes-base.code') {
+  if (['bootstrap', 'bootstrapForm', 'maintenance'].includes(workflowKind) && clean.type === 'n8n-nodes-base.code') {
     clean.parameters.jsCode = clean.parameters.jsCode
-      .replace(/input\.projectSlug\?\?'[^']*'/g, "input.projectSlug??'YOUR_PROJECT_SLUG'")
       .replace(/input\.owner\?\?'[^']*'/g, "input.owner??'YOUR_GITHUB_USER'")
       .replace(/input\.repository\?\?'[^']*'/g, "input.repository??'YOUR_REPOSITORY'")
       .replace(/input\.branch\?\?'[^']*'/g, "input.branch??'docs/generated'");
@@ -113,6 +121,7 @@ function createPortableWorkflow(workflow, workflowKind) {
   const settings = {};
   if (workflow.settings?.executionOrder) settings.executionOrder = workflow.settings.executionOrder;
   if (workflow.settings?.callerPolicy) settings.callerPolicy = workflow.settings.callerPolicy;
+  if (workflow.settings?.timezone) settings.timezone = workflow.settings.timezone;
 
   return {
     name: workflow.name,

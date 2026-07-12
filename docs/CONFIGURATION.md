@@ -47,13 +47,24 @@ Ele aceita apenas caminhos sob `projects/`, rejeita segmentos `..`, compara o co
 
 ## Bootstrap
 
-Configure em `Configuração Bootstrap`:
+O Bootstrap não possui gatilho manual. Ele exige `projectSlug` de um workflow chamador e mantém internamente:
 
-- `projectSlug`;
 - `owner`, `repository` e `branch`;
 - `forceBootstrap`, que deve permanecer `false`.
 
 O Bootstrap publica arquivos humanos e técnicos. Se `project.json` já existir, ele falha para evitar sobrescrever documentação mantida pelo time.
+
+## Formulário do Bootstrap
+
+O formulário é a entrada humana oficial:
+
+- exige um usuário autenticado no n8n;
+- consulta o Core antes de exibir a seleção;
+- monta o dropdown somente com slugs encontrados nas tags `project:<slug>`;
+- valida novamente a seleção antes de chamar o Bootstrap;
+- não expõe owner, repositório, branch ou `forceBootstrap`.
+
+A URL padrão termina em `/form/bootstrap-documentacao`.
 
 ## Maintenance
 

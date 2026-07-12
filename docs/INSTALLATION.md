@@ -18,9 +18,10 @@ Importe nesta ordem:
 2. `ai-enrichment.json`
 3. `github-publisher.json`
 4. `bootstrap-documentation.json`
-5. `daily-maintenance.json`
+5. `bootstrap-form.json`
+6. `daily-maintenance.json`
 
-Se a instância oferecer folders, agrupe os cinco workflows em `githubDocs`.
+Se a instância oferecer folders, agrupe os seis workflows em `githubDocs`.
 
 ## 2. Configure credenciais
 
@@ -28,6 +29,7 @@ Se a instância oferecer folders, agrupe os cinco workflows em `githubDocs`.
 - IA: configure a credencial no nó `Modelo OpenAI`.
 - Publisher: configure GitHub em `Consultar arquivo existente` e `Criar ou atualizar no GitHub`.
 - Bootstrap: configure GitHub em `Consultar projeto existente`.
+- Formulário: reutilize a credencial GitHub no nó `Listar projetos já publicados`; o acesso ao formulário exige login no n8n.
 - Maintenance: configure GitHub em `Consultar project.json remoto`.
 
 Em Docker, a URL da credencial n8n precisa ser acessível de dentro do container.
@@ -36,6 +38,7 @@ Em Docker, a URL da credencial n8n precisa ser acessível de dentro do container
 
 - IA: `Executar Core determinístico` → Core.
 - Bootstrap: selecione Core, IA e Publisher.
+- Formulário: `Descobrir projetos documentáveis` → Core; `Executar Bootstrap selecionado` → Bootstrap.
 - Maintenance: selecione Core e Publisher.
 
 Os IDs dos templates são placeholders e precisam ser selecionados novamente após a importação.
@@ -47,7 +50,6 @@ Nos nós `Configuração Bootstrap` e `Configuração Maintenance`, ajuste:
 - usuário ou organização GitHub;
 - repositório;
 - branch de documentação;
-- slug do projeto no Bootstrap;
 
 Crie a branch antes da primeira publicação. Não publique diretamente em `main` durante a implantação.
 
@@ -64,19 +66,20 @@ Use opcionalmente `component:agent`, `component:tool` ou `component:subflow`.
 
 ## 6. Ative e teste
 
-- Ative Core e Publisher, pois são subworkflows.
+- Ative Core, Publisher e Bootstrap, pois são subworkflows.
 - Ative a IA, pois todo Bootstrap depende dela.
-- Mantenha Bootstrap inativo e execute-o manualmente.
+- Ative o Formulário para disponibilizar sua URL de produção.
 - Ative Maintenance somente depois de validar o Bootstrap.
 - Confirme o fuso `America/Sao_Paulo` e o Schedule das 23:50.
 
 ## 7. Primeiro projeto
 
-1. Configure `projectSlug` no Bootstrap.
-2. Execute o Bootstrap.
-3. Revise `README.md` e `docs/architecture.mmd` no GitHub.
-4. Faça uma edição humana em `README.md`.
-5. Altere tecnicamente um workflow e execute a Maintenance manualmente.
-6. Confirme que os documentos humanos foram preservados.
+1. Abra `/form/bootstrap-documentacao` autenticado no n8n.
+2. Carregue os projetos e selecione o `projectSlug` no dropdown.
+3. Confirme a geração; o formulário chama o Bootstrap automaticamente.
+4. Revise `README.md` e `docs/architecture.mmd` no GitHub.
+5. Faça uma edição humana em `README.md`.
+6. Altere tecnicamente um workflow e execute a Maintenance manualmente.
+7. Confirme que os documentos humanos foram preservados.
 
 Leia [Segurança](SECURITY.md) antes de ativar a agenda.

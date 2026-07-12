@@ -2,13 +2,15 @@
 
 ## Bootstrap
 
-O Bootstrap é executado uma vez por projeto:
+O Bootstrap é executado uma vez por projeto, a partir do formulário:
 
-1. Valida que `project.json` ainda não existe.
-2. Chama o Core filtrando `projectSlug`.
-3. Executa a IA para gerar `README.md` e `docs/architecture.mmd`.
-4. Publica os dois documentos e os arquivos técnicos.
-5. Grava `project.json` por último com `bootstrapCompleted: true`.
+1. O formulário consulta o Core e apresenta os projetos encontrados.
+2. O usuário autenticado escolhe um `projectSlug`.
+3. O Bootstrap valida que `project.json` ainda não existe.
+4. Chama o Core filtrando `projectSlug`.
+5. Executa a IA para gerar `README.md` e `docs/architecture.mmd`.
+6. Publica os dois documentos e os arquivos técnicos.
+7. Grava `project.json` por último com `bootstrapCompleted: true`.
 
 Depois disso, `README.md` e `docs/` não pertencem mais à automação diária.
 
@@ -33,7 +35,7 @@ O Git continua sendo o histórico completo. O manifesto registra também `previo
 
 ## Recuperação
 
-- Projeto sem Bootstrap: executar Bootstrap manualmente.
+- Projeto sem Bootstrap: selecioná-lo no formulário.
 - Publicação parcial sem `project.json`: repetir Bootstrap.
 - Falha parcial de Maintenance: repetir a Maintenance; arquivos idênticos serão ignorados.
 - Rebootstrap intencional: revisar a documentação humana e habilitar `forceBootstrap` apenas durante a execução controlada.

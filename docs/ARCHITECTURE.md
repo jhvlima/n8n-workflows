@@ -5,7 +5,8 @@
 ```mermaid
 flowchart TD
     T[Tags docs-internal e project:slug] --> C[Core N:1]
-    C --> B[Bootstrap manual]
+    C --> F[Formulário autenticado]
+    F --> B[Bootstrap subworkflow]
     C --> M[Maintenance diária]
     B --> A[IA obrigatória]
     M --> D{Hash mudou?}
