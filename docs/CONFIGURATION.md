@@ -25,7 +25,7 @@ Uma referência por ID em `Execute Workflow` ou `Workflow Tool` aparece em `depe
 
 ## IA
 
-A IA é uma etapa obrigatória do Bootstrap e escreve `README.md` e `docs/architecture.mmd`. Ela não participa da Maintenance diária. O manifesto mantém `aiMode: bootstrap` para registrar essa política.
+A IA é uma etapa obrigatória do Bootstrap e escreve `README.md` e `docs/architecture.mmd`. O README recebe automaticamente uma seção `Arquitetura` com o Mermaid renderizável e um link para o arquivo fonte. A IA não participa da Maintenance diária. O manifesto mantém `aiMode: bootstrap` para registrar essa política.
 
 ## Publisher
 

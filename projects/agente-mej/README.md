@@ -32,3 +32,24 @@ O workflow é ativado por eventos de mensagens recebidas no Telegram e processa 
 ## Pontos que Precisam de Confirmação
 - Detalhes específicos sobre a configuração e uso das APIs de terceiros.
 - Políticas de segurança e privacidade aplicadas ao projeto.
+
+## Arquitetura
+
+```mermaid
+flowchart TD
+    Telegram[Telegram API] -->|Recebe mensagens| ChatTrigger[When chat message received]
+    ChatTrigger -->|Verifica áudio| CheckAudio[Check if Audio file]
+    CheckAudio -->|Texto| Assistant[Assistant Agent]
+    Assistant -->|Resposta| MsgTelegram[Mensagem do Telegram]
+    MsgTelegram -->|Envia resposta| ReplyTelegram[Reply in Telegram]
+    Assistant -->|Consulta| Supabase[Supabase Vector Store2]
+    Supabase -->|Dados| KnowledgeMEJ[Conhecimento - MEJ]
+    Assistant -->|Usa modelo| GoogleModel[Google Gemini Chat Model]
+    GoogleModel -->|Processa| Embeddings[Embeddings OpenAI1]
+    Embeddings -->|Dados vetorizados| Supabase
+    Supabase -->|Consulta| KnowledgeEJs[Conhecimento - EJs]
+    KnowledgeEJs -->|Dados| Assistant
+    Assistant -->|Memória| SimpleMemory[Simple Memory]
+```
+
+[Abrir a fonte do diagrama](docs/architecture.mmd)

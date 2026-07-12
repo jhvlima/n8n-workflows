@@ -8,7 +8,7 @@ O Bootstrap é executado uma vez por projeto, a partir do formulário:
 2. O usuário autenticado escolhe um `projectSlug`.
 3. O Bootstrap valida que `project.json` ainda não existe.
 4. Chama o Core filtrando `projectSlug`.
-5. Executa a IA para gerar `README.md` e `docs/architecture.mmd`.
+5. Executa a IA para gerar `README.md` e `docs/architecture.mmd`, incorporando o diagrama no README.
 6. Publica os dois documentos e os arquivos técnicos.
 7. Grava `project.json` por último com `bootstrapCompleted: true`.
 

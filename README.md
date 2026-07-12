@@ -9,7 +9,7 @@ Este repositório contém um pipeline reutilizável para agrupar workflows n8n e
 | Workflow | Responsabilidade | Template |
 | --- | --- | --- |
 | Core | Agrupa workflows pelas tags `docs-internal` e `project:<slug>`, sanitiza e calcula o hash funcional | [core-documentation.json](workflows/core-documentation.json) |
-| IA | Gera `README.md` e `docs/architecture.mmd` a partir do projeto sanitizado | [ai-enrichment.json](workflows/ai-enrichment.json) |
+| IA | Gera `README.md` com o diagrama incorporado e `docs/architecture.mmd` como fonte | [ai-enrichment.json](workflows/ai-enrichment.json) |
 | Publisher | Recebe caminhos completos, ignora conteúdo idêntico e publica serialmente | [github-publisher.json](workflows/github-publisher.json) |
 | Formulário | Lista os projetos documentáveis e coleta a escolha do usuário autenticado | [bootstrap-form.json](workflows/bootstrap-form.json) |
 | Bootstrap | Recebe o projeto escolhido e cria uma vez os arquivos humanos e técnicos | [bootstrap-documentation.json](workflows/bootstrap-documentation.json) |
@@ -37,6 +37,8 @@ flowchart TD
 ```
 
 Depois do Bootstrap, `README.md` e `docs/architecture.mmd` pertencem ao time. A Maintenance atualiza apenas `workflows/` e `project.json`.
+
+O README renderiza o Mermaid em uma seção `Arquitetura` e também referencia `docs/architecture.mmd`, permitindo abrir e editar a fonte separadamente.
 
 ## Identificação dos projetos
 

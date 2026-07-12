@@ -32,3 +32,17 @@ O workflow responde a solicitações HTTP, gera ou edita documentos de documenta
 
 - Confirmação dos detalhes exatos de integração com serviços externos.
 - Confirmação das políticas de segurança e acesso para edição de documentos.
+
+## Arquitetura
+
+```mermaid
+flowchart TD
+    HTTP_Request -->|Recebe solicitações| CONFIG[Configurações Iniciais]
+    CONFIG -->|Define parâmetros| Docsify
+    CONFIG -->|Define parâmetros| Mermaid
+    Docsify -->|Renderiza HTML| HTTP_Response[Resposta HTTP]
+    Mermaid -->|Gera diagramas| Docsify
+    HTTP_Response -->|Envia resposta ao usuário| End[Finaliza operação]
+```
+
+[Abrir a fonte do diagrama](docs/architecture.mmd)

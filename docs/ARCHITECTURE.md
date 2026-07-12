@@ -49,6 +49,8 @@ A IA recebe somente o snapshot sanitizado do Core e produz exatamente dois arqui
 - `README.md`, em Markdown e português do Brasil;
 - `docs/architecture.mmd`, como Mermaid puro.
 
+Depois de validar o Mermaid, a etapa de montagem o incorpora no `README.md` dentro de um bloco `mermaid` e adiciona um link relativo para `docs/architecture.mmd`.
+
 A Maintenance não chama a IA. Depois do Bootstrap, esses documentos podem ser revisados pelo time sem risco de sobrescrita diária.
 
 ## Contrato do Publisher
