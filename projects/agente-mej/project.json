@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "projectSlug": "agente-mej",
+  "title": "Agente Mej",
+  "sourceOfTruth": "github",
+  "bootstrapCompleted": true,
+  "aiMode": "bootstrap",
+  "currentVersion": "2026.07.11.1",
+  "functionalHash": "2320a6964f03866c",
+  "workflows": [
+    {
+      "workflowId": "zwED162zMkR8TUfY",
+      "workflowSlug": "mvp",
+      "componentId": "workflow.mvp",
+      "role": "workflow",
+      "name": "MVP",
+      "tags": [
+        "docs-internal",
+        "project:agente-MEJ"
+      ],
+      "nodeCount": 20,
+      "functionalHash": "ec018f504397c112",
+      "sourceUpdatedAt": "2026-07-12T00:35:31.027Z"
+    }
+  ],
+  "dependencies": [],
+  "reviewRequired": true,
+  "bootstrapAt": "2026-07-12T01:28:55.393Z"
+}

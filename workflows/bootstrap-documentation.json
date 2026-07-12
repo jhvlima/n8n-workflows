@@ -1,0 +1,297 @@
+{
+  "name": "Bootstrap - Documentação n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "c3f698d2-7689-4c9f-b8bf-fc52fe801d4b",
+      "name": "Receber configuração do Bootstrap",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input=$input.first()?.json??{};\nconst projectSlug=String(input.projectSlug??'').trim().toLowerCase();\nif(!projectSlug) throw new Error('projectSlug é obrigatório. Use o formulário de Bootstrap ou envie o slug pelo workflow chamador.');\nreturn [{json:{\n  projectSlug,\n  aiMode:'bootstrap',\n  owner:String(input.owner??'YOUR_GITHUB_USER'),\n  repository:String(input.repository??'YOUR_REPOSITORY'),\n  branch:String(input.branch??'docs/generated'),\n  forceBootstrap:Boolean(input.forceBootstrap??false),\n  documentationMode:'bootstrap'\n}}];"
+      },
+      "id": "f9992bd0-f731-4a10-a50f-dff2a0effbe3",
+      "name": "Configuração Bootstrap",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.repository }}",
+          "mode": "name"
+        },
+        "filePath": "={{ \"projects/\" + $(\"Configuração Bootstrap\").first().json.projectSlug + \"/project.json\" }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $(\"Configuração Bootstrap\").first().json.branch }}"
+        }
+      },
+      "id": "85c62e68-971c-42e0-ae89-99cbc112c8a4",
+      "name": "Consultar projeto existente",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        80
+      ],
+      "webhookId": "a0550118-6714-4496-89e6-6ce7e13f8abc",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg=$('Configuração Bootstrap').first().json;\n  const exists=typeof $json.sha==='string';\n  if(exists&&!cfg.forceBootstrap){\n    throw new Error('Bootstrap já concluído para '+cfg.projectSlug+'. Use forceBootstrap somente com revisão explícita.');\n  }\n  return [{json:cfg}];"
+      },
+      "id": "6f3dbc1b-f042-4b77-bf2f-a9abc2edfe40",
+      "name": "Validar primeira execução",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_CORE_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Core - Documentação n8n (Dry Run)"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "49ef391e-83f5-4d12-99c4-bb47fee8ff61",
+      "name": "Executar Core do projeto",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg=$('Configuração Bootstrap').first().json;\n  const projects=$input.first().json.payloads??[];\n  const project=projects.find(item=>item.projectSlug===cfg.projectSlug);\n  if(!project) throw new Error('Core não retornou o projeto '+cfg.projectSlug);\n  return [{json:{...project,aiMode:cfg.aiMode,documentationMode:'bootstrap'}}];"
+      },
+      "id": "373c966a-4f36-4ce4-b3e3-5dc1860ee9ce",
+      "name": "Selecionar projeto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_AI_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "AI - Enriquecimento da Documentação n8n"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "2db668f5-40e3-4e66-80e6-78a3cb239b27",
+      "name": "Executar enriquecimento inicial",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        1584,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg=$('Configuração Bootstrap').first().json;\n  const input=$input.first().json;\n  const project=Array.isArray(input.payloads)?input.payloads[0]:input;\n  if(!project?.projectSlug) throw new Error('Projeto ausente na preparação do Bootstrap.');\n  const manifest=JSON.parse(project.technicalFiles?.['project.json']??'{}');\n  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'})\n    .format(new Date()).replace(/-/g,'.');\n  const updatedManifest={\n    ...manifest,\n    bootstrapCompleted:true,\n    sourceOfTruth:'github',\n    aiMode:cfg.aiMode,\n    currentVersion:today+'.1',\n    bootstrapAt:new Date().toISOString(),\n    reviewRequired:true\n  };\n  const technicalFiles={...(project.technicalFiles??{})};\n  delete technicalFiles['project.json'];\n  const relativeFiles={\n    ...technicalFiles,\n    ...(project.humanFiles??{}),\n    'project.json':JSON.stringify(updatedManifest,null,2)\n  };\n  const files=Object.fromEntries(Object.entries(relativeFiles).map(([file,content])=>[\n    'projects/'+project.projectSlug+'/'+file,content\n  ]));\n  return [{json:{\n    owner:cfg.owner,\n    repository:cfg.repository,\n    branch:cfg.branch,\n    projectSlug:project.projectSlug,\n    files,\n    commitMessage:'docs('+project.projectSlug+'): bootstrap documentation'\n  }}];"
+      },
+      "id": "b09ffd55-1c18-496f-b98d-19b4a500a772",
+      "name": "Preparar publicação inicial",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_BOOTSTRAP_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Bootstrap - Documentação n8n"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "bdccfdbd-2500-4f03-98ca-f9ff7e5329bf",
+      "name": "Publicar Bootstrap",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const publication=$input.first().json;\n  const cfg=$('Configuração Bootstrap').first().json;\n  return [{json:{\n    status:'bootstrap-complete',\n    projectSlug:cfg.projectSlug,\n    aiMode:cfg.aiMode,\n    repository:cfg.owner+'/'+cfg.repository,\n    branch:cfg.branch,\n    publication,\n    reviewRequired:true\n  }}];"
+      },
+      "id": "918d11b4-804e-4944-9208-2a1bc4b09eba",
+      "name": "Resumo do Bootstrap",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Bootstrap — subworkflow de primeira publicação\n\n- Recebe projectSlug obrigatoriamente de outro workflow.\n- A entrada humana oficial é o workflow Bootstrap - Formulário.\n- Bloqueia reexecução quando project.json já existe.\n- Chama o Core determinístico e depois a IA obrigatoriamente.\n- Publica README.md, docs/architecture.mmd, workflows/ e project.json.\n- forceBootstrap permanece falso no formulário.",
+        "height": 360,
+        "width": 680,
+        "color": 3
+      },
+      "id": "9cda3638-71cb-459e-9023-9d5edf85b004",
+      "name": "Documentação - Bootstrap",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -448
+      ]
+    }
+  ],
+  "connections": {
+    "Receber configuração do Bootstrap": {
+      "main": [
+        [
+          {
+            "node": "Configuração Bootstrap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuração Bootstrap": {
+      "main": [
+        [
+          {
+            "node": "Consultar projeto existente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar projeto existente": {
+      "main": [
+        [
+          {
+            "node": "Validar primeira execução",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar primeira execução": {
+      "main": [
+        [
+          {
+            "node": "Executar Core do projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar Core do projeto": {
+      "main": [
+        [
+          {
+            "node": "Selecionar projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Selecionar projeto": {
+      "main": [
+        [
+          {
+            "node": "Executar enriquecimento inicial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar enriquecimento inicial": {
+      "main": [
+        [
+          {
+            "node": "Preparar publicação inicial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar publicação inicial": {
+      "main": [
+        [
+          {
+            "node": "Publicar Bootstrap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar Bootstrap": {
+      "main": [
+        [
+          {
+            "node": "Resumo do Bootstrap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
