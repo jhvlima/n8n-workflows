@@ -38,6 +38,58 @@ const outputFiles = {
   maintenance: 'daily-maintenance.json',
 };
 
+const portableConfigurations = {
+  core: {
+    nodeName: 'Configuração',
+    fields: [
+      ['requiredTag', "={{ String($json.requiredTag ?? 'docs-internal') }}"],
+      ['projectTagPrefix', "={{ String($json.projectTagPrefix ?? 'project:') }}"],
+      ['projectSlug', "={{ String($json.projectSlug ?? '').trim().toLowerCase() }}"],
+      ['aiMode', 'bootstrap'],
+      ['documentationMode', "={{ String($json.documentationMode ?? 'core') }}"],
+    ],
+  },
+  bootstrap: {
+    nodeName: 'Configuração Bootstrap',
+    fields: [
+      ['projectSlug', "={{ String($json.projectSlug ?? '').trim().toLowerCase() }}"],
+      ['aiMode', 'bootstrap'],
+      ['owner', "={{ String($json.owner ?? 'YOUR_GITHUB_USER') }}"],
+      ['repository', "={{ String($json.repository ?? 'YOUR_REPOSITORY') }}"],
+      ['branch', "={{ String($json.branch ?? 'docs/generated') }}"],
+      ['forceBootstrap', '={{ Boolean($json.forceBootstrap ?? false) }}', 'boolean'],
+      ['documentationMode', 'bootstrap'],
+    ],
+  },
+  bootstrapForm: {
+    nodeName: 'Configuração do formulário',
+    includeOtherFields: true,
+    fields: [
+      ['requiredTag', 'docs-internal'],
+      ['projectTagPrefix', 'project:'],
+      ['projectSlug', ''],
+      ['aiMode', 'bootstrap'],
+      ['documentationMode', 'form-discovery'],
+      ['owner', 'YOUR_GITHUB_USER'],
+      ['repository', 'YOUR_REPOSITORY'],
+      ['branch', 'docs/generated'],
+    ],
+  },
+  maintenance: {
+    nodeName: 'Configuração Maintenance',
+    fields: [
+      ['requiredTag', "={{ String($json.requiredTag ?? 'docs-internal') }}"],
+      ['projectTagPrefix', "={{ String($json.projectTagPrefix ?? 'project:') }}"],
+      ['projectSlug', "={{ String($json.projectSlug ?? '') }}"],
+      ['aiMode', 'bootstrap'],
+      ['owner', "={{ String($json.owner ?? 'YOUR_GITHUB_USER') }}"],
+      ['repository', "={{ String($json.repository ?? 'YOUR_REPOSITORY') }}"],
+      ['branch', "={{ String($json.branch ?? 'docs/generated') }}"],
+      ['documentationMode', 'maintenance'],
+    ],
+  },
+};
+
 async function fetchWorkflow(id) {
   const response = await fetch(`${apiUrl}/workflows/${id}`, {
     headers: { 'X-N8N-API-KEY': process.env.N8N_API_KEY },
@@ -72,14 +124,33 @@ function sanitizeNode(node, workflowKind) {
   const clean = replaceInstanceReferences(structuredClone(node));
   delete clean.credentials;
 
+  const portableConfiguration = portableConfigurations[workflowKind];
+  if (portableConfiguration?.nodeName === clean.name) {
+    const currentAssignments = clean.parameters?.assignments?.assignments ?? [];
+    clean.type = 'n8n-nodes-base.set';
+    clean.typeVersion = 3.4;
+    clean.parameters = {
+      assignments: {
+        assignments: portableConfiguration.fields.map(([name, value, type = 'string']) => ({
+          id: currentAssignments.find((entry) => entry.name === name)?.id ?? `${workflowKind}-${name}`,
+          name,
+          value,
+          type,
+        })),
+      },
+      ...(portableConfiguration.includeOtherFields ? { includeOtherFields: true } : {}),
+      options: {},
+    };
+  }
+
   if (clean.type === 'n8n-nodes-base.executeWorkflow') {
-    const target = /bootstrap/i.test(clean.name)
-      ? 'bootstrap'
-      : /publicar/i.test(clean.name)
+    const target = /publicar/i.test(clean.name)
         ? 'publisher'
         : /ia|enriquecimento/i.test(clean.name)
           ? 'ai'
-          : 'core';
+          : /bootstrap/i.test(clean.name)
+            ? 'bootstrap'
+            : 'core';
     const targets = {
       core: {
         placeholder: 'SELECT_CORE_WORKFLOW_AFTER_IMPORT',

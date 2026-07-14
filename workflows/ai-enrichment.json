@@ -166,6 +166,22 @@
       ],
       "id": "53c1e6b1-2492-4d5b-bcb4-971d76fc12c0",
       "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "content": "## Inputs e credenciais — IA\n\nEste workflow não possui configuração administrativa própria: recebe do Core um projeto direto ou `{ payloads: [...] }`.\n\n### Payload controlado\n- `kind`: deve ser `project`.\n- `projectSlug`: slug já validado pelo Core.\n- `technicalFiles`: precisa conter `project.json` e `workflows/*.sanitized.json`.\n- `documentationMode`: no pipeline oficial é `bootstrap`; a IA só participa do Bootstrap.\n\n### Credencial\nNo node conectado `Modelo OpenAI`, selecione uma credencial **OpenAI API** válida. O node `Google Gemini Chat Model` está desconectado e é apenas uma alternativa opcional; para usá-lo, conecte-o ao agente e configure a credencial Google Gemini.\n\n### Saída\nGera `README.md` e `docs/architecture.mmd`; não publica.\n\n### Exemplo\nEntrada: `{ kind: 'project', projectSlug: 'carteira-invest', technicalFiles: { 'project.json': '...', 'workflows/main.sanitized.json': '...' } }`.\n\nGuia completo: `docs/inputs/ai-enrichment.md`",
+        "height": 660,
+        "width": 860,
+        "color": 6
+      },
+      "id": "cd59abf1-3cb1-451f-83c0-8a0a2ed072f6",
+      "name": "Inputs e credenciais - IA",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        912,
+        -464
+      ]
     }
   ],
   "connections": {

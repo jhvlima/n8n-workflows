@@ -13,7 +13,15 @@ const requiredFiles = [
   'docs/ARCHITECTURE.md',
   'docs/CONTRIBUTING-DOCUMENTS.md',
   'docs/LIFECYCLE.md',
+  'docs/MAINTAINING-TEMPLATES.md',
   'docs/SECURITY.md',
+  'docs/inputs/README.md',
+  'docs/inputs/core.md',
+  'docs/inputs/ai-enrichment.md',
+  'docs/inputs/github-publisher.md',
+  'docs/inputs/bootstrap.md',
+  'docs/inputs/bootstrap-form.md',
+  'docs/inputs/daily-maintenance.md',
   'scripts/export-workflow-templates.mjs',
   'scripts/validate-repository.mjs',
   'workflows/core-documentation.json',
@@ -25,6 +33,13 @@ const requiredFiles = [
 ];
 
 const errors = [];
+
+const configurationNodes = {
+  'workflows/core-documentation.json': 'Configuração',
+  'workflows/bootstrap-documentation.json': 'Configuração Bootstrap',
+  'workflows/bootstrap-form.json': 'Configuração do formulário',
+  'workflows/daily-maintenance.json': 'Configuração Maintenance',
+};
 
 for (const file of requiredFiles) {
   if (!existsSync(path.join(root, file))) errors.push(`Arquivo obrigatório ausente: ${file}`);
@@ -62,11 +77,49 @@ for (const file of requiredFiles.filter((name) => name.endsWith('.json'))) {
     errors.push(`${file}: contém referência de credencial`);
   }
 
+  const inputSticky = workflow.nodes?.find(
+    (node) => node.type === 'n8n-nodes-base.stickyNote'
+      && /credenciais/i.test(String(node.parameters?.content))
+      && /inputs|configuração/i.test(String(node.parameters?.content)),
+  );
+  if (!inputSticky) {
+    errors.push(`${file}: não possui Sticky Note de inputs e credenciais`);
+  }
+
+  const configurationNodeName = configurationNodes[file];
+  if (configurationNodeName) {
+    const configurationNode = workflow.nodes?.find((node) => node.name === configurationNodeName);
+    if (configurationNode?.type !== 'n8n-nodes-base.set') {
+      errors.push(`${file}: ${configurationNodeName} precisa ser um Edit Fields`);
+    }
+  }
+
   for (const node of workflow.nodes ?? []) {
     if (node.type !== 'n8n-nodes-base.executeWorkflow') continue;
     const target = node.parameters?.workflowId?.value;
     if (!String(target).startsWith('SELECT_')) {
       errors.push(`${file}: o nó ${node.name} contém ID de subworkflow específico da instância`);
+    }
+  }
+
+  if (file === 'workflows/daily-maintenance.json') {
+    const callsAi = workflow.nodes?.some(
+      (node) => node.type === 'n8n-nodes-base.executeWorkflow'
+        && /ia|enriquecimento/i.test(node.name),
+    );
+    if (callsAi) errors.push(`${file}: Maintenance não pode chamar IA`);
+  }
+
+  if (file === 'workflows/bootstrap-documentation.json') {
+    const aiCall = workflow.nodes?.find(
+      (node) => node.type === 'n8n-nodes-base.executeWorkflow'
+        && /ia|enriquecimento/i.test(node.name),
+    );
+    if (!aiCall) errors.push(`${file}: Bootstrap precisa chamar a IA`);
+
+    const publisherCall = workflow.nodes?.find((node) => node.name === 'Publicar Bootstrap');
+    if (publisherCall?.parameters?.workflowId?.value !== 'SELECT_PUBLISHER_WORKFLOW_AFTER_IMPORT') {
+      errors.push(`${file}: Publicar Bootstrap precisa apontar para o Publisher portátil`);
     }
   }
 }

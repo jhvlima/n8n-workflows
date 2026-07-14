@@ -16,12 +16,58 @@
     },
     {
       "parameters": {
-        "jsCode": "const input=$input.first()?.json??{};\nconst projectSlug=String(input.projectSlug??'').trim().toLowerCase();\nif(!projectSlug) throw new Error('projectSlug é obrigatório. Use o formulário de Bootstrap ou envie o slug pelo workflow chamador.');\nreturn [{json:{\n  projectSlug,\n  aiMode:'bootstrap',\n  owner:String(input.owner??'YOUR_GITHUB_USER'),\n  repository:String(input.repository??'YOUR_REPOSITORY'),\n  branch:String(input.branch??'docs/generated'),\n  forceBootstrap:Boolean(input.forceBootstrap??false),\n  documentationMode:'bootstrap'\n}}];"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "86fcc2ac-d823-45a1-9462-69d0397ce811",
+              "name": "projectSlug",
+              "value": "={{ String($json.projectSlug ?? '').trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "8d37b1f8-a99a-4304-b20e-267a1b2808b4",
+              "name": "aiMode",
+              "value": "bootstrap",
+              "type": "string"
+            },
+            {
+              "id": "7bb6c3b6-85c9-4cd0-b687-a590e2a52757",
+              "name": "owner",
+              "value": "={{ String($json.owner ?? 'YOUR_GITHUB_USER') }}",
+              "type": "string"
+            },
+            {
+              "id": "778110bb-0052-4c80-99f7-ec0ceef3fb0e",
+              "name": "repository",
+              "value": "={{ String($json.repository ?? 'YOUR_REPOSITORY') }}",
+              "type": "string"
+            },
+            {
+              "id": "8cd082e5-e1c6-4ab5-8d2d-bf447f9dce85",
+              "name": "branch",
+              "value": "={{ String($json.branch ?? 'docs/generated') }}",
+              "type": "string"
+            },
+            {
+              "id": "a29fed04-8ca7-4212-a373-e6f5bd5d1b25",
+              "name": "forceBootstrap",
+              "value": "={{ Boolean($json.forceBootstrap ?? false) }}",
+              "type": "boolean"
+            },
+            {
+              "id": "7000903d-668c-41c8-b84e-54a0e799591d",
+              "name": "documentationMode",
+              "value": "bootstrap",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "f9992bd0-f731-4a10-a50f-dff2a0effbe3",
       "name": "Configuração Bootstrap",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
         240,
         80
@@ -143,9 +189,9 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "SELECT_BOOTSTRAP_WORKFLOW_AFTER_IMPORT",
+          "value": "SELECT_PUBLISHER_WORKFLOW_AFTER_IMPORT",
           "mode": "list",
-          "cachedResultName": "Bootstrap - Documentação n8n"
+          "cachedResultName": "Publisher - GitHub n8n-workflows"
         },
         "options": {
           "waitForSubWorkflow": true
@@ -187,6 +233,22 @@
       "position": [
         240,
         -448
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Inputs e credenciais — Bootstrap\n\n### Edit Fields `Configuração Bootstrap`\n- `projectSlug` (livre e obrigatório): slug vindo do formulário.\n- `owner`, `repository`, `branch` (livres e obrigatórios): destino GitHub.\n- `forceBootstrap` (booleano controlado): mantenha `false`; `true` só para republicação deliberada.\n- `aiMode` (fixo): `bootstrap`. A IA é obrigatória nesta etapa.\n- `documentationMode` (fixo): `bootstrap`.\n\n### Credencial e dependências\n- `Consultar projeto existente`: credencial **GitHub API** com leitura do repositório/branch.\n- Selecione os subworkflows importados nos nodes: `Executar Core do projeto`, `Executar enriquecimento inicial` e `Publicar Bootstrap`.\n- A credencial OpenAI fica no subworkflow de IA; a credencial de escrita GitHub fica no Publisher.\n\n### Exemplo\n`projectSlug=carteira-invest`, `owner=acme`, `repository=n8n-workflows`, `branch=docs/generated`, `forceBootstrap=false`.\n\nGuia completo: `docs/inputs/bootstrap.md`",
+        "height": 680,
+        "width": 880,
+        "color": 3
+      },
+      "id": "d405fbe4-c354-4bb7-9a50-9f91001e93be",
+      "name": "Configuração e credenciais - Bootstrap",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        -688
       ]
     }
   ],
