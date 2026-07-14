@@ -14,10 +14,44 @@
     },
     {
       "parameters": {
-        "jsCode": "const input=$input.first()?.json ?? {};\n  return [{json:{\n    requiredTag:String(input.requiredTag ?? 'docs-internal'),\n    projectTagPrefix:String(input.projectTagPrefix ?? 'project:'),\n    projectSlug:String(input.projectSlug ?? '').trim().toLowerCase(),\n    aiMode:String(input.aiMode ?? 'bootstrap'),\n    documentationMode:String(input.documentationMode ?? 'core')\n  }}];"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e346e49a-2f7a-4dc2-8096-c0033d916fac",
+              "name": "requiredTag",
+              "value": "={{ String($json.requiredTag ?? 'docs-internal') }}",
+              "type": "string"
+            },
+            {
+              "id": "968ee322-8003-4ba5-bf87-cc5f084a179c",
+              "name": "projectTagPrefix",
+              "value": "={{ String($json.projectTagPrefix ?? 'project:') }}",
+              "type": "string"
+            },
+            {
+              "id": "ad501e66-7022-4a98-8407-98b853a084b0",
+              "name": "projectSlug",
+              "value": "={{ String($json.projectSlug ?? '').trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "7273a28b-e69a-489d-b5ad-849c430eaf20",
+              "name": "aiMode",
+              "value": "bootstrap",
+              "type": "string"
+            },
+            {
+              "id": "9f7d9c7a-3782-4b50-a995-abbb7a6f25e8",
+              "name": "documentationMode",
+              "value": "={{ String($json.documentationMode ?? 'core') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
         240,
         0
@@ -94,6 +128,22 @@
       ],
       "id": "35855046-ed5c-44d6-a768-e0deaa55a779",
       "name": "Chamado por outro workflow"
+    },
+    {
+      "parameters": {
+        "content": "## Inputs e credenciais — Core\n\n### Edit Fields `Configuração`\n- `requiredTag` (livre): tag comum aos workflows documentáveis. Padrão: `docs-internal`.\n- `projectTagPrefix` (livre): prefixo da tag que agrupa o projeto. Padrão: `project:`.\n- `projectSlug` (livre): vazio = todos os projetos; preenchido = somente esse slug.\n- `aiMode` (fixo): mantenha `bootstrap`. É metadado; o Core não chama IA.\n- `documentationMode` (controlado): `core`, `bootstrap`, `maintenance` ou `form-discovery`; normalmente `core`.\n\n### Credencial\nNo node `Listar workflows`, selecione uma credencial **n8n API** com acesso de leitura aos workflows e tags desta instância.\n\n### Exemplo\n`requiredTag=docs-internal`, `projectTagPrefix=project:`, `projectSlug=carteira-invest`, `documentationMode=core`.\n\nGuia completo: `docs/inputs/core.md`",
+        "height": 620,
+        "width": 820,
+        "color": 5
+      },
+      "id": "8c0fe818-8050-4eab-9ddd-8eb020ca8c6c",
+      "name": "Configuração e credenciais - Core",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        720,
+        -688
+      ]
     }
   ],
   "connections": {

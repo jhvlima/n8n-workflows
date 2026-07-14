@@ -1,85 +1,58 @@
-# Instalação em outra instância n8n
+# Checklist detalhado de implantação
+
+O procedimento completo de uso está no [README](../README.md). Use este checklist para validar uma instalação nova ou uma migração para outra instância.
+
+Não é necessário clonar este repositório para operar o pipeline. Baixe ou importe os seis templates na interface do n8n e configure qualquer repositório GitHub como destino. A pasta `projects/` deste repositório é somente um conjunto de exemplos.
 
 ## Pré-requisitos
 
-- Instância n8n com API habilitada.
-- Chave da API n8n.
-- Repositório e branch GitHub para a documentação.
-- Credencial GitHub com leitura e escrita de conteúdo.
-- Credencial OpenAI para gerar os dois documentos do Bootstrap.
+- n8n com API habilitada;
+- chave da API n8n dedicada;
+- repositório e branch GitHub já existentes;
+- credencial GitHub com leitura e escrita de conteúdo;
+- credencial OpenAI;
+- usuário n8n autorizado a abrir o formulário.
 
-O projeto foi testado no n8n `2.28.6`.
+O repositório de destino pode ser o mesmo que contém os templates, um monorepo existente ou um repositório separado para documentação.
 
-## 1. Importe os templates
+Compatibilidade validada: n8n `2.28.6`.
 
-Importe nesta ordem:
+## Importação
 
-1. `core-documentation.json`
-2. `ai-enrichment.json`
-3. `github-publisher.json`
-4. `bootstrap-documentation.json`
-5. `bootstrap-form.json`
-6. `daily-maintenance.json`
+- [ ] Importar Core, IA, Publisher, Bootstrap, Formulário e Maintenance, nessa ordem.
+- [ ] Opcionalmente, colocar os seis no folder `githubDocs`.
+- [ ] Configurar n8n API em `Listar workflows`.
+- [ ] Configurar OpenAI em `Modelo OpenAI`.
+- [ ] Configurar GitHub nos nodes indicados pelos Sticky Notes.
+- [ ] Selecionar novamente todos os subworkflows nos nodes `Execute Workflow`.
+- [ ] Substituir `YOUR_GITHUB_USER` e `YOUR_REPOSITORY` nos Edit Fields.
+- [ ] Confirmar que a branch configurada já existe.
+- [ ] Manter `forceBootstrap=false`.
+- [ ] Manter o Form Trigger protegido por `n8n User Auth`.
 
-Se a instância oferecer folders, agrupe os seis workflows em `githubDocs`.
+Os IDs `SELECT_*_AFTER_IMPORT` são placeholders e não podem permanecer na instância configurada.
 
-## 2. Configure credenciais
+## Docker e rede
 
-- Core: configure a credencial n8n API no nó `Listar workflows`.
-- IA: configure a credencial no nó `Modelo OpenAI`.
-- Publisher: configure GitHub em `Consultar arquivo existente` e `Criar ou atualizar no GitHub`.
-- Bootstrap: configure GitHub em `Consultar projeto existente`.
-- Formulário: reutilize a credencial GitHub no nó `Listar projetos já publicados`; o acesso ao formulário exige login no n8n.
-- Maintenance: configure GitHub em `Consultar project.json remoto`.
+A URL da credencial n8n é acessada pelo container. `localhost` dentro do container aponta para o próprio container, não necessariamente para o host. Use um endereço alcançável pela rede Docker ou o nome correto do serviço.
 
-Em Docker, a URL da credencial n8n precisa ser acessível de dentro do container.
+## Teste de fumaça
 
-## 3. Selecione os subworkflows
+1. Crie ou escolha um workflow de teste.
+2. Aplique `docs-internal` e `project:teste-documentacao`.
+3. Execute o Core com esse slug e confirme que apenas o workflow esperado aparece.
+4. Abra o formulário autenticado e execute o Bootstrap.
+5. Confira no GitHub os quatro tipos de saída: README, Mermaid, snapshot sanitizado e manifesto.
+6. Edite o README manualmente.
+7. Faça uma alteração técnica no workflow e execute a Maintenance.
+8. Confirme que o snapshot e `project.json` mudaram, mas o README foi preservado.
 
-- IA: `Executar Core determinístico` → Core.
-- Bootstrap: selecione Core, IA e Publisher.
-- Formulário: `Descobrir projetos documentáveis` → Core; `Executar Bootstrap selecionado` → Bootstrap.
-- Maintenance: selecione Core e Publisher.
+## Antes de ativar o Schedule
 
-Os IDs dos templates são placeholders e precisam ser selecionados novamente após a importação.
+- [ ] Fuso `America/Sao_Paulo` confirmado.
+- [ ] Cron `50 23 * * *` confirmado.
+- [ ] Branch protegida ou dedicada.
+- [ ] Diff revisado por pull request.
+- [ ] Projeto de teste removido ou mantido deliberadamente.
 
-## 4. Configure o destino
-
-Nos nós `Configuração Bootstrap` e `Configuração Maintenance`, ajuste:
-
-- usuário ou organização GitHub;
-- repositório;
-- branch de documentação;
-
-Crie a branch antes da primeira publicação. Não publique diretamente em `main` durante a implantação.
-
-## 5. Aplique as tags
-
-Cada workflow documentado precisa de:
-
-```text
-docs-internal
-project:<slug>
-```
-
-Use opcionalmente `component:agent`, `component:tool` ou `component:subflow`.
-
-## 6. Ative e teste
-
-- Ative Core, Publisher e Bootstrap, pois são subworkflows.
-- Ative a IA, pois todo Bootstrap depende dela.
-- Ative o Formulário para disponibilizar sua URL de produção.
-- Ative Maintenance somente depois de validar o Bootstrap.
-- Confirme o fuso `America/Sao_Paulo` e o Schedule das 23:50.
-
-## 7. Primeiro projeto
-
-1. Abra `/form/bootstrap-documentacao` autenticado no n8n.
-2. Carregue os projetos e selecione o `projectSlug` no dropdown.
-3. Confirme a geração; o formulário chama o Bootstrap automaticamente.
-4. Revise `README.md` e `docs/architecture.mmd` no GitHub.
-5. Faça uma edição humana em `README.md`.
-6. Altere tecnicamente um workflow e execute a Maintenance manualmente.
-7. Confirme que os documentos humanos foram preservados.
-
-Leia [Segurança](SECURITY.md) antes de ativar a agenda.
+Consulte também [Segurança](SECURITY.md) e [Inputs e credenciais](inputs/README.md).

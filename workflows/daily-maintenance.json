@@ -35,14 +35,66 @@
     {
       "id": "7031faee-6d0a-4898-b7a7-b278d3102492",
       "name": "Configuração Maintenance",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
         240,
         80
       ],
       "parameters": {
-        "jsCode": "const input=$input.first()?.json??{};\n  return [{json:{\n    requiredTag:String(input.requiredTag??'docs-internal'),\n    projectTagPrefix:String(input.projectTagPrefix??'project:'),\n    projectSlug:String(input.projectSlug??''),\n    aiMode:'bootstrap',\n    owner:String(input.owner??'YOUR_GITHUB_USER'),\n    repository:String(input.repository??'YOUR_REPOSITORY'),\n    branch:String(input.branch??'docs/generated'),\n    documentationMode:'maintenance'\n  }}];"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "21d0070c-e899-4811-830c-6168c373a637",
+              "name": "requiredTag",
+              "value": "={{ String($json.requiredTag ?? 'docs-internal') }}",
+              "type": "string"
+            },
+            {
+              "id": "8d8d398b-571d-4cc9-9e9c-d38ce8c80ac9",
+              "name": "projectTagPrefix",
+              "value": "={{ String($json.projectTagPrefix ?? 'project:') }}",
+              "type": "string"
+            },
+            {
+              "id": "bda7df42-5dd9-4cb2-8375-4499ec243d33",
+              "name": "projectSlug",
+              "value": "={{ String($json.projectSlug ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "9c6b9a69-5ba8-424d-857b-a9d9f101b9fd",
+              "name": "aiMode",
+              "value": "bootstrap",
+              "type": "string"
+            },
+            {
+              "id": "3375e9d6-27dd-49e9-bba9-571b7ed8b529",
+              "name": "owner",
+              "value": "={{ String($json.owner ?? 'YOUR_GITHUB_USER') }}",
+              "type": "string"
+            },
+            {
+              "id": "d0e4def4-2fb2-44b6-81b0-9189ae365bc8",
+              "name": "repository",
+              "value": "={{ String($json.repository ?? 'YOUR_REPOSITORY') }}",
+              "type": "string"
+            },
+            {
+              "id": "b40b0f0e-1c11-4f59-a5d9-76032ae7d43b",
+              "name": "branch",
+              "value": "={{ String($json.branch ?? 'docs/generated') }}",
+              "type": "string"
+            },
+            {
+              "id": "a52ac357-a9f2-4e40-aaec-9d169d9c6757",
+              "name": "documentationMode",
+              "value": "maintenance",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
       }
     },
     {
@@ -261,6 +313,22 @@
         "width": 720,
         "color": 7
       }
+    },
+    {
+      "parameters": {
+        "content": "## Inputs e credenciais — Maintenance\n\n### Edit Fields `Configuração Maintenance`\n- `requiredTag` e `projectTagPrefix` (livres): normalmente `docs-internal` e `project:`.\n- `projectSlug` (livre): vazio = todos os projetos; preenchido = teste direcionado.\n- `owner`, `repository`, `branch` (livres e obrigatórios): origem do `project.json` e destino técnico.\n- `aiMode` (fixo): `bootstrap`, mantido apenas como metadado. Maintenance nunca chama IA.\n- `documentationMode` (fixo): `maintenance`.\n\n### Credencial e dependências\n- `Consultar project.json remoto`: credencial **GitHub API** com leitura.\n- Selecione o Core em `Executar Core diário` e o Publisher em `Publicar Maintenance`.\n- A escrita GitHub é configurada no Publisher.\n\n### Exemplo\n`requiredTag=docs-internal`, `projectTagPrefix=project:`, `projectSlug=''`, `owner=acme`, `repository=n8n-workflows`, `branch=docs/generated`.\n\nGuia completo: `docs/inputs/daily-maintenance.md`",
+        "height": 680,
+        "width": 900,
+        "color": 7
+      },
+      "id": "a3a17fd6-52fb-4c67-ae82-0eb3f13e091a",
+      "name": "Configuração e credenciais - Maintenance",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        -688
+      ]
     }
   ],
   "connections": {

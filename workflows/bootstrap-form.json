@@ -45,12 +45,65 @@
     },
     {
       "parameters": {
-        "jsCode": "const input=$input.first()?.json??{};\nreturn [{json:{\n  ...input,\n  requiredTag:'docs-internal',\n  projectTagPrefix:'project:',\n  projectSlug:'',\n  aiMode:'bootstrap',\n  documentationMode:'form-discovery',\n  owner:String(input.owner??'YOUR_GITHUB_USER'),\n  repository:String(input.repository??'YOUR_REPOSITORY'),\n  branch:String(input.branch??'docs/generated')\n}}];"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "77248138-51e4-4c3e-a90d-a22c935b2606",
+              "name": "requiredTag",
+              "value": "docs-internal",
+              "type": "string"
+            },
+            {
+              "id": "f2642d3e-7487-430e-bbec-1440ca899fc3",
+              "name": "projectTagPrefix",
+              "value": "project:",
+              "type": "string"
+            },
+            {
+              "id": "8586daac-cbc2-4f57-aae3-3106f0283a71",
+              "name": "projectSlug",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "3b1845bb-b908-4735-b086-131d66adb770",
+              "name": "aiMode",
+              "value": "bootstrap",
+              "type": "string"
+            },
+            {
+              "id": "15be0ff3-d35c-4911-8192-c46690ee46f6",
+              "name": "documentationMode",
+              "value": "form-discovery",
+              "type": "string"
+            },
+            {
+              "id": "f3d06861-74ab-432d-8136-5a0f9ed40a28",
+              "name": "owner",
+              "value": "YOUR_GITHUB_USER",
+              "type": "string"
+            },
+            {
+              "id": "011e763c-5446-4941-bbe7-bdd99cfc513b",
+              "name": "repository",
+              "value": "YOUR_REPOSITORY",
+              "type": "string"
+            },
+            {
+              "id": "fb6634b5-b82b-47e7-a914-868887a23dce",
+              "name": "branch",
+              "value": "docs/generated",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
       },
       "id": "0256c89e-9524-48b7-8446-ba348dcc9055",
       "name": "Configuração do formulário",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
         -656,
         0
@@ -209,6 +262,22 @@
       ],
       "webhookId": "fa165d6d-8d1d-471b-b8fa-a0abc849dce0",
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## Inputs e credenciais — Formulário\n\n### Campos do usuário\n- `confirmLoad` (checkbox controlado): precisa ser marcado para carregar os projetos.\n- `projectSlug` (lista controlada): escolha um projeto descoberto pelas tags e ainda não publicado.\n\n### Edit Fields `Configuração do formulário`\n- `requiredTag`, `projectTagPrefix` (livres): normalmente `docs-internal` e `project:`.\n- `owner`, `repository`, `branch` (livres e obrigatórios): repositório consultado pelo formulário.\n- Fixos: `projectSlug=''`, `aiMode=bootstrap`, `documentationMode=form-discovery`.\n\n### Credenciais e dependências\n- Configure autenticação `n8n User Auth` no Form Trigger.\n- `Listar projetos já publicados`: credencial **GitHub API** com leitura.\n- Selecione o Core em `Descobrir projetos documentáveis` e o Bootstrap em `Executar Bootstrap selecionado`.\n\n### Exemplo\n`requiredTag=docs-internal`, `projectTagPrefix=project:`, `owner=acme`, `repository=n8n-workflows`, `branch=docs/generated`; usuário escolhe `carteira-invest`.\n\nGuia completo: `docs/inputs/bootstrap-form.md`",
+        "height": 720,
+        "width": 900,
+        "color": 3
+      },
+      "id": "36397532-4888-4552-890a-9288ec805fb4",
+      "name": "Configuração e credenciais - Formulário",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        720,
+        -720
+      ]
     }
   ],
   "connections": {

@@ -208,6 +208,22 @@
         "mode": "runOnceForEachItem",
         "jsCode": "return {json:{\n    action:'skipped',\n    changed:false,\n    path:$json.path,\n    branch:$json.branch,\n    projectSlug:$json.projectSlug,\n    commitSha:$json.currentSha??null\n  }};"
       }
+    },
+    {
+      "parameters": {
+        "content": "## Inputs e credenciais — Publisher\n\nNão há node de configuração: este subworkflow publica exatamente o payload recebido.\n\n### Campos\n- `owner`, `repository`, `branch` (livres e obrigatórios): destino GitHub.\n- `projectSlug` (livre e obrigatório): projeto do monorepo.\n- `files` (obrigatório): objeto `{ caminho: conteúdo }` ou lista equivalente.\n- `commitMessage` (livre): mensagem do commit; há fallback automático.\n- Caminhos são controlados: precisam começar por `projects/` e não podem conter `..`.\n\n### Credencial\nUse a mesma credencial **GitHub API** nos nodes `Consultar arquivo existente` e `Criar ou atualizar no GitHub`. Ela precisa ler conteúdo e gravar na branch escolhida.\n\n### Exemplo\n`owner=acme`, `repository=n8n-workflows`, `branch=docs/generated`, `projectSlug=carteira-invest`, `files={ 'projects/carteira-invest/project.json': '{...}' }`.\n\nGuia completo: `docs/inputs/github-publisher.md`",
+        "height": 660,
+        "width": 860,
+        "color": 4
+      },
+      "id": "eea39a1c-dd84-48d3-b5e8-202c7594730f",
+      "name": "Inputs e credenciais - Publisher",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -672
+      ]
     }
   ],
   "connections": {
