@@ -5,7 +5,7 @@
   "sourceOfTruth": "github",
   "bootstrapCompleted": true,
   "aiMode": "bootstrap",
-  "currentVersion": "2026.07.11.1",
+  "currentVersion": "2026.07.21.1",
   "functionalHash": "2320a6964f03866c",
   "workflows": [
     {
@@ -25,5 +25,7 @@
   ],
   "dependencies": [],
   "reviewRequired": true,
-  "bootstrapAt": "2026-07-12T01:28:55.393Z"
+  "documentationLayout": "separated",
+  "documentationSchemaVersion": 2,
+  "bootstrapAt": "2026-07-21T22:55:36.933Z"
 }
