@@ -21,11 +21,15 @@ Os templates não contêm referências de credenciais. Depois da importação:
 
 ## Bootstrap
 
-`forceBootstrap` deve permanecer falso. Uma segunda inicialização pode sobrescrever `README.md` e `docs/`, que passam a pertencer ao time após o primeiro Bootstrap.
+`forceBootstrap` deve permanecer falso na configuração administrativa. Ao selecionar explicitamente um projeto já publicado, o formulário envia `true` somente naquela execução. O processo lê README, documento técnico e documento interno anteriores, mascara padrões sensíveis antes da IA e sobrescreve os documentos humanos. A sanitização reduz risco, mas não substitui a revisão do diff.
 
-O `project.json` é publicado por último para reduzir o risco de marcar um Bootstrap parcial como concluído.
+O `project.json` é publicado no mesmo commit atômico que os demais arquivos, evitando marcar um Bootstrap parcial como concluído.
 
-O formulário de Bootstrap exige autenticação de usuário do n8n, aceita somente slugs descobertos pelo Core e não permite enviar `forceBootstrap`, repositório ou branch.
+O formulário de Bootstrap exige autenticação, aceita somente slugs descobertos pelo Core e não permite enviar diretamente `forceBootstrap`, repositório ou branch.
+
+### Documento interno
+
+`projects/<slug>/docs/INTERNAL.md` pode conter cliente, responsáveis, dinâmica de relacionamento e decisões empresariais. A separação em arquivo próprio não altera a visibilidade do GitHub. Prefira repositório privado; para publicação externa, use outro destino ou remova explicitamente o conteúdo interno.
 
 ## Maintenance
 
@@ -44,7 +48,7 @@ Nomes, código, prompts, Sticky Notes e documentos são conteúdo não confiáve
 
 - Use branch dedicada.
 - Proteja `main` contra push direto.
-- Evite execuções concorrentes.
+- Evite execuções concorrentes; se a branch avançar, o Publisher usa `force=false` e falha sem sobrescrever o novo estado.
 - Revise o diff completo.
 - Prefira repositórios privados para documentação interna.
 

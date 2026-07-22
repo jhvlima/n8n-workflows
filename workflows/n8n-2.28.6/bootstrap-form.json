@@ -1,0 +1,370 @@
+{
+  "name": "Bootstrap - Formulário de Documentação n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "n8nUserAuth",
+        "formTitle": "Documentar projeto n8n",
+        "formDescription": "Clique para consultar os projetos identificados pelas tags configuradas.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Carregar projetos",
+              "fieldType": "hiddenField",
+              "fieldName": "loadProjects",
+              "fieldValue": "true"
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Carregar projetos",
+          "path": "bootstrap-documentacao",
+          "ignoreBots": true,
+          "includeUserInOutput": true,
+          "useWorkflowTimezone": true
+        }
+      },
+      "id": "1aaa28de-3308-4761-9c5e-a4eb6877850d",
+      "name": "Abrir formulário de documentação",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -896,
+        0
+      ],
+      "webhookId": "3b43de72-32df-47b9-90f9-9373e5c2c282"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "77248138-51e4-4c3e-a90d-a22c935b2606",
+              "name": "requiredTag",
+              "value": "docs-internal",
+              "type": "string"
+            },
+            {
+              "id": "f2642d3e-7487-430e-bbec-1440ca899fc3",
+              "name": "projectTagPrefix",
+              "value": "project:",
+              "type": "string"
+            },
+            {
+              "id": "8586daac-cbc2-4f57-aae3-3106f0283a71",
+              "name": "projectSlug",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "3b1845bb-b908-4735-b086-131d66adb770",
+              "name": "aiMode",
+              "value": "bootstrap",
+              "type": "string"
+            },
+            {
+              "id": "15be0ff3-d35c-4911-8192-c46690ee46f6",
+              "name": "documentationMode",
+              "value": "form-discovery",
+              "type": "string"
+            },
+            {
+              "id": "f3d06861-74ab-432d-8136-5a0f9ed40a28",
+              "name": "owner",
+              "value": "YOUR_GITHUB_USER",
+              "type": "string"
+            },
+            {
+              "id": "011e763c-5446-4941-bbe7-bdd99cfc513b",
+              "name": "repository",
+              "value": "YOUR_REPOSITORY",
+              "type": "string"
+            },
+            {
+              "id": "fb6634b5-b82b-47e7-a914-868887a23dce",
+              "name": "branch",
+              "value": "docs/generated",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "0256c89e-9524-48b7-8446-ba348dcc9055",
+      "name": "Configuração do formulário",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -656,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_CORE_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Core - Documentação n8n (Dry Run)"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "f3ad18ef-d948-4f6d-8973-5c2b24feddb9",
+      "name": "Descobrir projetos documentáveis",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -464,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payloads=$('Descobrir projetos documentáveis').first().json.payloads??[];\nconst published=new Set($input.all()\n  .map(item=>item.json??{})\n  .filter(item=>item.type==='dir'&&String(item.path??'').startsWith('projects/'))\n  .map(item=>String(item.name??'').trim().toLowerCase())\n  .filter(Boolean));\nconst projects=payloads\n  .filter(item=>item?.kind==='project'&&item?.projectSlug)\n  .map(item=>({projectSlug:String(item.projectSlug),title:String(item.title??item.projectSlug)}))\n  .sort((a,b)=>a.projectSlug.localeCompare(b.projectSlug));\nif(projects.length===0) throw new Error('Nenhum projeto documentável foi encontrado pelas tags configuradas.');\nreturn [{json:{\n  availableProjects:projects.map(item=>item.projectSlug),\n  publishedProjects:projects.filter(item=>published.has(item.projectSlug.toLowerCase())).map(item=>item.projectSlug),\n  formDefinition:[{\n    fieldLabel:'Projeto',\n    fieldName:'projectSlug',\n    fieldType:'dropdown',\n    fieldOptions:{values:projects.map(item=>({option:item.projectSlug}))},\n    requiredField:true\n  }]\n}}];"
+      },
+      "id": "a27ae2e7-55f5-4856-8775-26cc85f9a488",
+      "name": "Preparar projetos para seleção",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "defineForm": "json",
+        "jsonOutput": "={{ $json.formDefinition }}",
+        "options": {
+          "formTitle": "Escolha o projeto e o estilo do README",
+          "formDescription": "O Bootstrap publicará um README operacional com Mermaid, uma documentação técnica, um contexto interno e um roteiro de revisão. Projetos já publicados preservam e reorganizam os documentos humanos existentes.",
+          "buttonLabel": "Gerar documentação"
+        }
+      },
+      "id": "c9f9060b-a769-40dd-a7cb-f5350ac56ba9",
+      "name": "Escolher projeto",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        192,
+        0
+      ],
+      "webhookId": "f039b334-34c3-4869-9e15-858f00305d0b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const projectSlug=String($json.projectSlug??$json.Projeto??'').trim().toLowerCase();\nconst selection=$('Preparar projetos para seleção').first().json;\nconst available=selection.availableProjects??[];\nconst published=selection.publishedProjects??[];\nif(!available.includes(projectSlug)) throw new Error('Projeto inválido ou não disponível: '+projectSlug);\nconst alreadyPublished=published.includes(projectSlug);\nconst cfg=$('Configuração do formulário').first().json;\nreturn [{json:{\n  projectSlug,\n  documentationLayout:'separated',\n  aiMode:'bootstrap',\n  owner:cfg.owner,\n  repository:cfg.repository,\n  branch:cfg.branch,\n  forceBootstrap:alreadyPublished,\n  documentationMode:'bootstrap'\n}}];"
+      },
+      "id": "b8a75f97-78c0-4b34-87c2-dcb3e88c0643",
+      "name": "Validar seleção",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_BOOTSTRAP_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Bootstrap - Documentação n8n"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "6a3da3d0-9294-4872-a21b-d2934e77b1c4",
+      "name": "Executar Bootstrap selecionado",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Documentação gerada",
+        "completionMessage": "={{ 'O Bootstrap do projeto ' + $json.projectSlug + ' foi concluído. Revise README.md, docs/TECHNICAL.md e docs/INTERNAL.md na branch ' + $json.branch + ' seguindo projects/README.md#pr-review.' }}",
+        "options": {
+          "formTitle": "Bootstrap concluído"
+        }
+      },
+      "id": "defd82c8-80b3-4383-ad47-0cea7b3828c4",
+      "name": "Exibir conclusão",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        912,
+        0
+      ],
+      "webhookId": "72458451-9bc6-4eb7-b597-0e2f9e49e3af"
+    },
+    {
+      "parameters": {
+        "content": "## Formulário — entrada humana do Bootstrap\n\n- Usa somente os nodes de formulário padrão do n8n.\n- A primeira página possui apenas o botão Carregar projetos.\n- Depois do clique, o Core monta a lista com project:<slug>.\n- Exibe projetos novos e já publicados.\n- O pacote possui README operacional com Mermaid, documento técnico e documento interno.\n- O roteiro compartilhado fica em projects/README.md#pr-review.\n- Em projetos já publicados, os documentos anteriores são preservados.\n- A escolha de projeto publicado ativa forceBootstrap.\n- Chama o Bootstrap e aguarda o commit atômico.\n- URL: /form/bootstrap-documentacao",
+        "height": 280,
+        "width": 680,
+        "color": 5
+      },
+      "id": "7bb16e62-2e6b-4439-bd51-40a8d87b1a6d",
+      "name": "Documentação - Formulário do Bootstrap",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        -368
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração do formulário\").first().json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração do formulário\").first().json.repository }}",
+          "mode": "name"
+        },
+        "filePath": "projects",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $(\"Configuração do formulário\").first().json.branch }}"
+        }
+      },
+      "id": "7004db15-e829-4084-9733-277a0fd9383f",
+      "name": "Listar projetos já publicados",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        -256,
+        0
+      ],
+      "webhookId": "fa165d6d-8d1d-471b-b8fa-a0abc849dce0",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## Inputs e credenciais — Formulário\n\n### Campo do usuário\n- projectSlug (lista controlada): escolha qualquer projeto descoberto pelas tags.\n- Não há escolha de estilo: o Bootstrap sempre separa conteúdo técnico e interno.\n- Projetos já publicados preservam e reorganizam os documentos humanos anteriores.\n\n### Edit Fields Configuração do formulário\n- requiredTag, projectTagPrefix (livres): normalmente docs-internal e project:.\n- owner, repository, branch (livres e obrigatórios): repositório consultado pelo formulário.\n- Fixos: projectSlug vazio, aiMode=bootstrap, documentationMode=form-discovery.\n\n### Credenciais e dependências\n- Configure a autenticação exigida pela variante no Form Trigger.\n- Listar projetos já publicados: credencial GitHub API com leitura.\n- Selecione o Core em Descobrir projetos documentáveis e o Bootstrap em Executar Bootstrap selecionado.\n\n### Exemplo\nowner=acme, repository=n8n-workflows, branch=docs/generated; o usuário escolhe carteira-invest.\n\nGuia completo: docs/inputs/bootstrap-form.md",
+        "height": 720,
+        "width": 900,
+        "color": 3
+      },
+      "id": "36397532-4888-4552-890a-9288ec805fb4",
+      "name": "Configuração e credenciais - Formulário",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -800
+      ]
+    }
+  ],
+  "connections": {
+    "Abrir formulário de documentação": {
+      "main": [
+        [
+          {
+            "node": "Configuração do formulário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuração do formulário": {
+      "main": [
+        [
+          {
+            "node": "Descobrir projetos documentáveis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descobrir projetos documentáveis": {
+      "main": [
+        [
+          {
+            "node": "Listar projetos já publicados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar projetos para seleção": {
+      "main": [
+        [
+          {
+            "node": "Escolher projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escolher projeto": {
+      "main": [
+        [
+          {
+            "node": "Validar seleção",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar seleção": {
+      "main": [
+        [
+          {
+            "node": "Executar Bootstrap selecionado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar Bootstrap selecionado": {
+      "main": [
+        [
+          {
+            "node": "Exibir conclusão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar projetos já publicados": {
+      "main": [
+        [
+          {
+            "node": "Preparar projetos para seleção",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  }
+}

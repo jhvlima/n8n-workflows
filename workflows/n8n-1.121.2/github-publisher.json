@@ -1,0 +1,513 @@
+{
+  "name": "Publisher - GitHub n8n-workflows",
+  "nodes": [
+    {
+      "id": "a8259771-2f69-4453-a9ca-e862ff66fd81",
+      "name": "Receber arquivos para publicação",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -800,
+        80
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputs=$input.all().map(item=>item.json??{});\nif(inputs.length!==1){\n  throw new Error('O Publisher aceita exatamente uma publicação por execução para garantir um único commit.');\n}\nconst publication=inputs[0];\nconst owner=String(publication.owner??'').trim();\nconst repository=String(publication.repository??'').trim();\nconst branch=String(publication.branch??'').trim();\nif(!owner||!repository||!branch) throw new Error('owner, repository e branch são obrigatórios.');\nif(branch.startsWith('refs/')||branch.startsWith('/')||branch.endsWith('/')||branch.includes('..')){\n  throw new Error('Nome de branch inválido: '+branch);\n}\nconst entries=Array.isArray(publication.files)\n  ? publication.files.map(file=>[file.path,file.content])\n  : Object.entries(publication.files??{});\nconst deletePaths=Array.isArray(publication.deletePaths)?publication.deletePaths.map(String):[];\nif(entries.length===0&&deletePaths.length===0) throw new Error('Nenhum arquivo ou remoção recebido para publicação.');\nconst paths=new Set();\nconst treeEntries=[];\nfor(const [pathValue,contentValue] of entries){\n  const filePath=String(pathValue??'').replace(/^\\/+/, '');\n  const invalidSegment=filePath.split('/').some(segment=>!segment||segment==='.'||segment==='..');\n  if(!filePath.startsWith('projects/')||invalidSegment){\n    throw new Error('Caminho de publicação inválido: '+filePath);\n  }\n  if(paths.has(filePath)) throw new Error('Caminho duplicado no mesmo commit: '+filePath);\n  if(typeof contentValue!=='string') throw new Error('Conteúdo deve ser texto: '+filePath);\n  paths.add(filePath);\n  treeEntries.push({path:filePath,mode:'100644',type:'blob',content:contentValue});\n}\nfor(const pathValue of deletePaths){\n  const filePath=String(pathValue??'').replace(/^\\/+/, '');\n  if(filePath!=='PR_REVIEW.md'){\n    throw new Error('Remoção não permitida: '+filePath+'. Somente o PR_REVIEW.md legado pode ser removido.');\n  }\n  if(paths.has(filePath)) throw new Error('Caminho duplicado no mesmo commit: '+filePath);\n  paths.add(filePath);\n  treeEntries.push({path:filePath,mode:'100644',type:'blob',sha:null});\n}\ntreeEntries.sort((a,b)=>a.path.localeCompare(b.path));\nreturn [{json:{\n  owner,\n  repository,\n  branch,\n  projectSlug:String(publication.projectSlug??'').trim(),\n  commitMessage:String(publication.commitMessage??('docs('+publication.projectSlug+'): atomic publication')),\n  fileCount:treeEntries.length,\n  deleteCount:deletePaths.length,\n  deletePaths,\n  paths:treeEntries.map(entry=>entry.path),\n  treeEntries\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        80
+      ],
+      "id": "237a6e2e-3e60-4a38-9e76-1a8f538fa405",
+      "name": "Preparar commit atômico"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + encodeURIComponent($json.owner) + '/' + encodeURIComponent($json.repository) + '/git/ref/heads/' + $json.branch.split('/').map(encodeURIComponent).join('/') }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -320,
+        80
+      ],
+      "id": "f877b303-9cf8-4bf6-a53c-acde46617ce5",
+      "name": "Consultar referência da branch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const publication=$('Preparar commit atômico').first().json;\nconst baseCommitSha=String($json.object?.sha??'');\nif(!/^[a-f0-9]{40}$/i.test(baseCommitSha)){\n  throw new Error('A referência da branch não retornou um commit SHA válido.');\n}\nreturn [{json:{...publication,baseCommitSha}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        80
+      ],
+      "id": "46f8ea89-e864-4443-a337-e9824e06ac6b",
+      "name": "Preparar consulta do commit base"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + encodeURIComponent($json.owner) + '/' + encodeURIComponent($json.repository) + '/git/commits/' + $json.baseCommitSha }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        160,
+        80
+      ],
+      "id": "64c4372f-4c8b-4480-bf7e-cf2ad616003f",
+      "name": "Consultar commit base"
+    },
+    {
+      "parameters": {
+        "jsCode": "const publication=$('Preparar consulta do commit base').first().json;\nconst baseTreeSha=String($json.tree?.sha??'');\nif(!/^[a-f0-9]{40}$/i.test(baseTreeSha)){\n  throw new Error('O commit base não retornou uma tree SHA válida.');\n}\nreturn [{json:{\n  ...publication,\n  baseTreeSha,\n  treeRequestBody:{\n    base_tree:baseTreeSha,\n    tree:publication.treeEntries\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        80
+      ],
+      "id": "07698d83-ccf0-4317-8d96-d5ee7239ed67",
+      "name": "Preparar nova árvore"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.github.com/repos/' + encodeURIComponent($json.owner) + '/' + encodeURIComponent($json.repository) + '/git/trees' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.treeRequestBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        640,
+        80
+      ],
+      "id": "2f327d8a-572e-416a-8d21-82d3d3a88755",
+      "name": "Criar árvore completa"
+    },
+    {
+      "id": "455155c8-34f7-4148-914a-d329732f4af1",
+      "name": "Árvore mudou?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "0c974590-b045-46bc-8ecf-77eb567fb00e",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ String($json.sha !== $('Preparar nova árvore').first().json.baseTreeSha) }}",
+              "rightValue": "true"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const context=$('Preparar nova árvore').first().json;\nconst newTreeSha=String($json.sha??'');\nif(!/^[a-f0-9]{40}$/i.test(newTreeSha)){\n  throw new Error('A nova árvore não retornou um SHA válido.');\n}\nreturn [{json:{\n  ...context,\n  newTreeSha,\n  commitRequestBody:{\n    message:context.commitMessage,\n    tree:newTreeSha,\n    parents:[context.baseCommitSha]\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -48
+      ],
+      "id": "678b9ee6-aa53-40d9-93d5-a2b7a30d7494",
+      "name": "Preparar commit único"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.github.com/repos/' + encodeURIComponent($json.owner) + '/' + encodeURIComponent($json.repository) + '/git/commits' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.commitRequestBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1360,
+        -48
+      ],
+      "id": "669075b5-a4d0-4b79-b6a7-e67c78c2655e",
+      "name": "Criar commit único"
+    },
+    {
+      "parameters": {
+        "jsCode": "const context=$('Preparar commit único').first().json;\nconst newCommitSha=String($json.sha??'');\nif(!/^[a-f0-9]{40}$/i.test(newCommitSha)){\n  throw new Error('O novo commit não retornou um SHA válido.');\n}\nreturn [{json:{\n  ...context,\n  newCommitSha,\n  refRequestBody:{sha:newCommitSha,force:false}\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        -48
+      ],
+      "id": "88237a5c-76aa-4819-a34a-44b22a2c6e41",
+      "name": "Preparar atualização da referência"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://api.github.com/repos/' + encodeURIComponent($json.owner) + '/' + encodeURIComponent($json.repository) + '/git/refs/heads/' + $json.branch.split('/').map(encodeURIComponent).join('/') }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.refRequestBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1840,
+        -48
+      ],
+      "id": "19df01a5-a8d0-4ab8-9d97-45a8ec51f9c5",
+      "name": "Atualizar referência da branch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const context=$('Preparar atualização da referência').first().json;\nconst publishedSha=String($json.object?.sha??context.newCommitSha);\nif(publishedSha!==context.newCommitSha){\n  throw new Error('A branch não aponta para o commit recém-criado.');\n}\nreturn [{json:{\n  action:'committed',\n  changed:true,\n  atomic:true,\n  owner:context.owner,\n  repository:context.repository,\n  branch:context.branch,\n  projectSlug:context.projectSlug,\n  previousCommitSha:context.baseCommitSha,\n  commitSha:context.newCommitSha,\n  treeSha:context.newTreeSha,\n  commitMessage:context.commitMessage,\n  fileCount:context.fileCount,\n  paths:context.paths\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        -48
+      ],
+      "id": "cb0f974e-222b-45da-8238-57ed2338e04e",
+      "name": "Registrar commit publicado"
+    },
+    {
+      "parameters": {
+        "jsCode": "const context=$('Preparar nova árvore').first().json;\nreturn [{json:{\n  action:'skipped',\n  changed:false,\n  atomic:true,\n  owner:context.owner,\n  repository:context.repository,\n  branch:context.branch,\n  projectSlug:context.projectSlug,\n  previousCommitSha:context.baseCommitSha,\n  commitSha:context.baseCommitSha,\n  treeSha:context.baseTreeSha,\n  commitMessage:context.commitMessage,\n  fileCount:context.fileCount,\n  paths:context.paths\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        208
+      ],
+      "id": "07002db4-a28c-4bc3-8e08-e8f41805328d",
+      "name": "Registrar execução sem mudança"
+    },
+    {
+      "parameters": {
+        "jsCode": "const result=$input.first().json;\nreturn [{json:{\n  status:result.changed?'published':'unchanged',\n  repository:result.owner+'/'+result.repository,\n  branch:result.branch,\n  projectSlug:result.projectSlug,\n  atomic:true,\n  commitsCreated:result.changed?1:0,\n  changed:result.changed,\n  commitSha:result.commitSha,\n  previousCommitSha:result.previousCommitSha,\n  treeSha:result.treeSha,\n  commitMessage:result.commitMessage,\n  fileCount:result.fileCount,\n  paths:result.paths,\n  files:result.paths.map(path=>({path,action:result.changed?'committed':'skipped'})),\n  reviewRequired:true\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        80
+      ],
+      "id": "704cb3cd-5b6a-46ee-9961-5df7f4a4a324",
+      "name": "Resumo da publicação"
+    },
+    {
+      "parameters": {
+        "content": "## Publisher atômico\n\n- Recebe exatamente uma publicação por execução.\n- Valida todos os caminhos antes de chamar o GitHub.\n- Permite escrever somente projects/**, incluindo projects/README.md.\n- Permite remover somente o PR_REVIEW.md legado.\n- Cria uma tree Git sobre a tree atual da branch.\n- Se a tree for idêntica, encerra sem criar commit.\n- Se houver mudança, cria um único commit com escritas e remoção.\n- Move a referência somente por fast-forward (force=false).\n- Uma falha antes da atualização não publica estado parcial.",
+        "height": 440,
+        "width": 760,
+        "color": 4
+      },
+      "id": "7b57ecbb-128d-4234-90f8-cde0596ebb1e",
+      "name": "Documentação - Publisher atômico",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        -520
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Inputs e credenciais — Publisher\n\nNão há node de configuração: este subworkflow publica exatamente um payload.\n\n### Campos\n- owner, repository, branch: destino GitHub obrigatório.\n- projectSlug: projeto relacionado à execução.\n- files: somente projects/**, incluindo projects/README.md.\n- deletePaths: opcional; aceita somente PR_REVIEW.md legado na raiz para migração.\n- commitMessage: mensagem única do commit.\n\n### Credencial\nUse a mesma credencial GitHub API em todos os nodes HTTP. O token precisa de Contents: read and write.\n\n### Concorrência\nA referência usa force=false. Se outra execução avançar a branch, repita a execução.\n\n### Resultado\ncommitsCreated é 1 quando houve mudança e 0 quando a tree já era idêntica.\n\nGuia completo: docs/inputs/github-publisher.md",
+        "height": 720,
+        "width": 880,
+        "color": 4
+      },
+      "id": "eea39a1c-dd84-48d3-b5e8-202c7594730f",
+      "name": "Inputs e credenciais - Publisher",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -720
+      ]
+    }
+  ],
+  "connections": {
+    "Receber arquivos para publicação": {
+      "main": [
+        [
+          {
+            "node": "Preparar commit atômico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar commit atômico": {
+      "main": [
+        [
+          {
+            "node": "Consultar referência da branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar referência da branch": {
+      "main": [
+        [
+          {
+            "node": "Preparar consulta do commit base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar consulta do commit base": {
+      "main": [
+        [
+          {
+            "node": "Consultar commit base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar commit base": {
+      "main": [
+        [
+          {
+            "node": "Preparar nova árvore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar nova árvore": {
+      "main": [
+        [
+          {
+            "node": "Criar árvore completa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar árvore completa": {
+      "main": [
+        [
+          {
+            "node": "Árvore mudou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Árvore mudou?": {
+      "main": [
+        [
+          {
+            "node": "Preparar commit único",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar execução sem mudança",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar commit único": {
+      "main": [
+        [
+          {
+            "node": "Criar commit único",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar commit único": {
+      "main": [
+        [
+          {
+            "node": "Preparar atualização da referência",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar atualização da referência": {
+      "main": [
+        [
+          {
+            "node": "Atualizar referência da branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar referência da branch": {
+      "main": [
+        [
+          {
+            "node": "Registrar commit publicado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar commit publicado": {
+      "main": [
+        [
+          {
+            "node": "Resumo da publicação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar execução sem mudança": {
+      "main": [
+        [
+          {
+            "node": "Resumo da publicação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "11212000-0000-4000-8000-000000000003"
+}

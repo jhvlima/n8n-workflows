@@ -1,0 +1,209 @@
+{
+  "name": "Core - Documentação n8n (Dry Run)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "03117801-f6da-402d-8dd6-326baae4c5dc",
+      "name": "Executar manualmente"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e346e49a-2f7a-4dc2-8096-c0033d916fac",
+              "name": "requiredTag",
+              "value": "={{ String($json.requiredTag ?? 'docs-internal') }}",
+              "type": "string"
+            },
+            {
+              "id": "968ee322-8003-4ba5-bf87-cc5f084a179c",
+              "name": "projectTagPrefix",
+              "value": "={{ String($json.projectTagPrefix ?? 'project:') }}",
+              "type": "string"
+            },
+            {
+              "id": "ad501e66-7022-4a98-8407-98b853a084b0",
+              "name": "projectSlug",
+              "value": "={{ String($json.projectSlug ?? '').trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "7273a28b-e69a-489d-b5ad-849c430eaf20",
+              "name": "aiMode",
+              "value": "bootstrap",
+              "type": "string"
+            },
+            {
+              "id": "9f7d9c7a-3782-4b50-a995-abbb7a6f25e8",
+              "name": "documentationMode",
+              "value": "={{ String($json.documentationMode ?? 'core') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        0
+      ],
+      "id": "77a5415d-ed8a-431b-a74c-67127b2b2fa1",
+      "name": "Configuração"
+    },
+    {
+      "parameters": {
+        "filters": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        480,
+        0
+      ],
+      "id": "e612a299-7c92-4d05-b9c4-932feb6eb4d1",
+      "name": "Listar workflows",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg=$('Configuração').first().json;\n  const workflows=$input.all().map(item=>item.json);\n  const normalize=value=>String(value??'').trim().toLowerCase();\n  const slugify=value=>String(value??'')\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase()\n    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'workflow';\n  const titleFromSlug=slug=>slug.split('-').filter(Boolean)\n    .map(part=>part.charAt(0).toUpperCase()+part.slice(1)).join(' ');\n\n  const documented=workflows.filter(workflow=>\n    (workflow.tags??[]).some(tag=>normalize(tag.name??tag)===normalize(cfg.requiredTag))\n  );\n\n  const ignored=[];\n  const ambiguous=[];\n  const groups=new Map();\n  for(const workflow of documented){\n    const projectTags=(workflow.tags??[])\n      .map(tag=>String(tag.name??tag))\n      .filter(name=>normalize(name).startsWith(normalize(cfg.projectTagPrefix)));\n    if(projectTags.length===0){\n      ignored.push({workflowId:workflow.id,name:workflow.name,reason:'missing-project-tag'});\n      continue;\n    }\n    if(projectTags.length>1){\n      ambiguous.push({workflowId:workflow.id,name:workflow.name,projectTags});\n      continue;\n    }\n    const projectSlug=slugify(projectTags[0].slice(cfg.projectTagPrefix.length));\n    if(cfg.projectSlug&&projectSlug!==slugify(cfg.projectSlug)) continue;\n    if(!groups.has(projectSlug)) groups.set(projectSlug,[]);\n    groups.get(projectSlug).push(workflow);\n  }\n\n  if(ambiguous.length){\n    throw new Error('Workflows com '+cfg.requiredTag+' possuem mais de uma tag '+cfg.projectTagPrefix+'<slug>: '+\n      ambiguous.map(item=>item.name).join(', '));\n  }\n  if(cfg.projectSlug&&!groups.has(slugify(cfg.projectSlug))){\n    throw new Error('Projeto não encontrado para a tag project:'+slugify(cfg.projectSlug));\n  }\n  if(groups.size===0){\n    return [{json:{\n      kind:'empty',\n      requiredTag:cfg.requiredTag,\n      discovered:workflows.length,\n      ignoredWorkflows:ignored,\n      message:'Nenhum projeto documentável encontrado. Workflows sem tag de projeto ignorados: '+ignored.length+'.'\n    }}];\n  }\n\n  const sensitiveKey=/(authorization|api.?key|token|secret|password|cookie|private.?key|client.?secret|workflow.?id|spreadsheet.?id|document.?id|folder.?id|database.?id|prompt|messages|system.?message|json.?schema.?example)/i;\n  const placeholder=key=>'{{'+String(key||'SECRET').replace(/[^a-z0-9]+/gi,'_').toUpperCase()+'}}';\n\n  function sanitize(value,key=''){\n    if(sensitiveKey.test(key)) return placeholder(key);\n    if(Array.isArray(value)) return value.map(entry=>sanitize(entry,key));\n    if(value&&typeof value==='object'){\n      return Object.fromEntries(Object.entries(value).map(([childKey,childValue])=>[childKey,sanitize(childValue,childKey)]));\n    }\n    if(typeof value!=='string') return value;\n    return value\n      .replace(/Bearer\\s+[A-Za-z0-9._~+\\/=\\-]+/gi,'Bearer {{AUTH_TOKEN}}')\n      .replace(/https?:\\/\\/(?:localhost|127\\.0\\.0\\.1|10\\.\\d+\\.\\d+\\.\\d+|192\\.168\\.\\d+\\.\\d+)(?::\\d+)?/gi,'https://internal.example');\n  }\n\n  function publicNode(node){\n    const allowed=['id','name','type','typeVersion','position','disabled','notes','notesInFlow','executeOnce','retryOnFail','maxTries','waitBetweenTries','onError'];\n    const clean=Object.fromEntries(allowed.filter(key=>node[key]!==undefined).map(key=>[key,node[key]]));\n    clean.parameters=sanitize(node.parameters??{});\n    if(/(?:^|\\.)webhook$|formTrigger$/i.test(node.type)&&clean.parameters.path) clean.parameters.path='WEBHOOK_PATH';\n    if(/chainLlm/i.test(node.type)&&clean.parameters.text) clean.parameters.text='{{TEXT}}';\n    if(node.credentials){\n      clean.credentials=Object.fromEntries(Object.keys(node.credentials).sort().map(type=>[\n        type,{id:type.toUpperCase()+'_CREDENTIAL_ID',name:type.toUpperCase()+'_CREDENTIAL'}\n      ]));\n    }\n    return clean;\n  }\n\n  function stableValue(value){\n    if(Array.isArray(value)) return value.map(stableValue);\n    if(value&&typeof value==='object'){\n      return Object.fromEntries(Object.keys(value).sort().map(key=>[key,stableValue(value[key])]));\n    }\n    return value;\n  }\n\n  function stableHash(value){\n    const text=JSON.stringify(stableValue(value));\n    let first=2166136261;\n    let second=3339675911;\n    for(let index=0;index<text.length;index++){\n      const code=text.charCodeAt(index);\n      first=Math.imul(first^code,16777619);\n      second=Math.imul(second^code,2246822519);\n    }\n    return (first>>>0).toString(16).padStart(8,'0')+(second>>>0).toString(16).padStart(8,'0');\n  }\n\n  function roleOf(workflow){\n    const tags=(workflow.tags??[]).map(tag=>normalize(tag.name??tag));\n    if(tags.includes('component:agent')) return 'agent';\n    if(tags.includes('component:tool')) return 'tool';\n    if(tags.includes('component:subflow')) return 'subflow';\n    return 'workflow';\n  }\n\n  function workflowReference(node){\n    if(!/(executeWorkflow|toolWorkflow)/i.test(node.type)) return null;\n    const raw=node.parameters?.workflowId;\n    const value=typeof raw==='string'?raw:raw?.value;\n    if(typeof value!=='string'||!value||value.startsWith('=')) return null;\n    return value;\n  }\n\n  const outputs=[];\n  for(const [projectSlug,projectWorkflows] of [...groups.entries()].sort(([a],[b])=>a.localeCompare(b))){\n    const byId=new Map(projectWorkflows.map(item=>[item.id,item]));\n    const usedSlugs=new Set();\n    const components=[];\n\n    for(const item of [...projectWorkflows].sort((a,b)=>a.name.localeCompare(b.name))){\n      let workflowSlug=slugify(item.name);\n      if(usedSlugs.has(workflowSlug)) workflowSlug=workflowSlug+'-'+stableHash(item.id).slice(0,6);\n      usedSlugs.add(workflowSlug);\n      const role=roleOf(item);\n      const publicWorkflow={\n        name:item.name,\n        nodes:(item.nodes??[]).map(publicNode),\n        connections:item.connections??{},\n        settings:{executionOrder:item.settings?.executionOrder??'v1'}\n      };\n      const functionalWorkflow={\n        name:item.name,\n        nodes:(item.nodes??[]).map(node=>({\n          name:node.name,\n          type:node.type,\n          typeVersion:node.typeVersion,\n          disabled:Boolean(node.disabled),\n          parameters:sanitize(node.parameters??{}),\n          credentialTypes:Object.keys(node.credentials??{}).sort()\n        })).sort((a,b)=>a.name.localeCompare(b.name)),\n        connections:item.connections??{},\n        settings:{executionOrder:item.settings?.executionOrder??'v1'}\n      };\n      components.push({\n        workflowId:item.id,\n        workflowSlug,\n        componentId:role+'.'+workflowSlug,\n        role,\n        name:item.name,\n        tags:(item.tags??[]).map(tag=>tag.name??tag).sort(),\n        sourceUpdatedAt:item.updatedAt,\n        nodeCount:(item.nodes??[]).length,\n        functionalHash:stableHash(functionalWorkflow),\n        publicWorkflow,\n        original:item\n      });\n    }\n\n    const componentByWorkflowId=new Map(components.map(component=>[component.workflowId,component]));\n    const dependencies=[];\n    for(const component of components){\n      for(const node of component.original.nodes??[]){\n        const targetId=workflowReference(node);\n        if(!targetId) continue;\n        const target=componentByWorkflowId.get(targetId);\n        dependencies.push({\n          source:component.componentId,\n          relation:/toolWorkflow/i.test(node.type)?'usesTool':'callsSubflow',\n          viaNode:node.name,\n          target:target?.componentId??null,\n          targetWorkflowId:targetId,\n          external:!target\n        });\n      }\n    }\n\n    const projectHash=stableHash({\n      projectSlug,\n      components:components.map(component=>({\n        componentId:component.componentId,\n        functionalHash:component.functionalHash\n      })).sort((a,b)=>a.componentId.localeCompare(b.componentId)),\n      dependencies:dependencies.map(item=>({\n        source:item.source,relation:item.relation,target:item.target,targetWorkflowId:item.targetWorkflowId\n      })).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)))\n    });\n\n    const projectTitle=titleFromSlug(projectSlug);\n    const projectManifest={\n      schemaVersion:1,\n      projectSlug,\n      title:projectTitle,\n      sourceOfTruth:'github',\n      bootstrapCompleted:false,\n      aiMode:cfg.aiMode,\n      currentVersion:null,\n      functionalHash:projectHash,\n      workflows:components.map(component=>({\n        workflowId:component.workflowId,\n        workflowSlug:component.workflowSlug,\n        componentId:component.componentId,\n        role:component.role,\n        name:component.name,\n        tags:component.tags,\n        nodeCount:component.nodeCount,\n        functionalHash:component.functionalHash,\n        sourceUpdatedAt:component.sourceUpdatedAt\n      })),\n      dependencies,\n      reviewRequired:true\n    };\n\n    const technicalFiles={\n      'project.json':JSON.stringify(projectManifest,null,2)\n    };\n    for(const component of components){\n      technicalFiles['workflows/'+component.workflowSlug+'.sanitized.json']=JSON.stringify(component.publicWorkflow,null,2);\n    }\n\n    outputs.push({json:{\n      kind:'project',\n      projectSlug,\n      title:projectTitle,\n      functionalHash:projectHash,\n      aiMode:cfg.aiMode,\n      reviewRequired:true,\n      components:projectManifest.workflows,\n      dependencies,\n      humanFiles:{},\n      technicalFiles\n    }});\n  }\n  if(ignored.length){\n    outputs.push({json:{kind:'ignored',ignoredWorkflows:ignored,discovered:workflows.length}});\n  }\n  return outputs;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "id": "51578dc2-ecbb-43fd-a895-64b77ee91b9b",
+      "name": "Extrair, sanitizar e gerar documentos"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows=$input.all().map(item=>item.json);\n  const projects=rows.filter(row=>row.kind==='project');\n  const empty=rows.find(row=>row.kind==='empty');\n  const ignoredRow=rows.find(row=>row.kind==='ignored');\n  const ignoredWorkflows=empty?.ignoredWorkflows??ignoredRow?.ignoredWorkflows??[];\n  const defaultMessage='Projetos agrupados e arquivos preparados; nenhuma publicação foi realizada.';\n  const ignoredMessage=ignoredWorkflows.length\n    ? ' Workflows sem tag de projeto ignorados: '+ignoredWorkflows.length+'.'\n    : '';\n  return [{json:{\n    status:'core-ready',\n    selectedProjects:projects.length,\n    payloads:projects,\n    projects:projects.map(project=>({\n      projectSlug:project.projectSlug,\n      title:project.title,\n      functionalHash:project.functionalHash,\n      workflows:project.components.length,\n      humanFiles:Object.keys(project.humanFiles),\n      technicalFiles:Object.keys(project.technicalFiles),\n      reviewRequired:project.reviewRequired\n    })),\n    ignoredWorkflows:ignoredWorkflows.length,\n    ignoredWorkflowNames:ignoredWorkflows.map(workflow=>workflow.name),\n    discoveredWorkflows:empty?.discovered??ignoredRow?.discovered,\n    message:empty?.message??(defaultMessage+ignoredMessage)\n  }}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "270ea493-64a0-4024-abba-0d03e8d3f2ff",
+      "name": "Resumo do Core"
+    },
+    {
+      "parameters": {
+        "content": "## Core — snapshot técnico determinístico\n\n- Agrupa workflows pelas tags docs-internal + project:<slug>.\n- Ignora workflows apenas com docs-internal e sem tag project:.\n- Bloqueia somente quando há mais de uma tag project: no mesmo workflow.\n- Sanitiza os JSONs antes de qualquer uso pela IA.\n- Calcula o hash funcional do projeto inteiro.\n- Gera somente workflows/*.sanitized.json e project.json.\n- Não gera README, Mermaid ou outros documentos humanos.\n- Não publica e não chama IA.",
+        "height": 360,
+        "width": 640,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -480
+      ],
+      "id": "eb98749a-2bd7-437c-a7e3-c523fed68840",
+      "name": "Documentação - Core por projeto"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        192
+      ],
+      "id": "35855046-ed5c-44d6-a768-e0deaa55a779",
+      "name": "Chamado por outro workflow"
+    },
+    {
+      "parameters": {
+        "content": "## Inputs e credenciais — Core\n\n### Edit Fields `Configuração`\n- `requiredTag` (livre): tag comum aos workflows documentáveis. Padrão: `docs-internal`.\n- `projectTagPrefix` (livre): prefixo da tag que agrupa o projeto. Padrão: `project:`.\n- `projectSlug` (livre): vazio = todos os projetos; preenchido = somente esse slug.\n- Regra de tags: apenas `docs-internal` = ignorado; uma `project:<slug>` = documentado; duas ou mais = erro por ambiguidade.\n- `aiMode` (fixo): mantenha `bootstrap`. É metadado; o Core não chama IA.\n- `documentationMode` (controlado): `core`, `bootstrap`, `maintenance` ou `form-discovery`; normalmente `core`.\n\n### Credencial\nNo node `Listar workflows`, selecione uma credencial **n8n API** com acesso de leitura aos workflows e tags desta instância.\n\n### Exemplo\n`requiredTag=docs-internal`, `projectTagPrefix=project:`, `projectSlug=carteira-invest`, `documentationMode=core`.\n\nGuia completo: `docs/inputs/core.md`",
+        "height": 620,
+        "width": 820,
+        "color": 5
+      },
+      "id": "8c0fe818-8050-4eab-9ddd-8eb020ca8c6c",
+      "name": "Configuração e credenciais - Core",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        720,
+        -688
+      ]
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuração": {
+      "main": [
+        [
+          {
+            "node": "Listar workflows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar workflows": {
+      "main": [
+        [
+          {
+            "node": "Extrair, sanitizar e gerar documentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair, sanitizar e gerar documentos": {
+      "main": [
+        [
+          {
+            "node": "Resumo do Core",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chamado por outro workflow": {
+      "main": [
+        [
+          {
+            "node": "Configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

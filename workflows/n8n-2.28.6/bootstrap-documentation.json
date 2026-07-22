@@ -1,0 +1,641 @@
+{
+  "name": "Bootstrap - Documentação n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "c3f698d2-7689-4c9f-b8bf-fc52fe801d4b",
+      "name": "Receber configuração do Bootstrap",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "86fcc2ac-d823-45a1-9462-69d0397ce811",
+              "name": "projectSlug",
+              "value": "={{ String($json.projectSlug ?? '').trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "8d37b1f8-a99a-4304-b20e-267a1b2808b4",
+              "name": "aiMode",
+              "value": "bootstrap",
+              "type": "string"
+            },
+            {
+              "id": "cf326788-e8ad-4d11-99b0-4e502083fc48",
+              "name": "documentationLayout",
+              "value": "separated",
+              "type": "string"
+            },
+            {
+              "id": "7bb6c3b6-85c9-4cd0-b687-a590e2a52757",
+              "name": "owner",
+              "value": "={{ String($json.owner ?? 'YOUR_GITHUB_USER') }}",
+              "type": "string"
+            },
+            {
+              "id": "778110bb-0052-4c80-99f7-ec0ceef3fb0e",
+              "name": "repository",
+              "value": "={{ String($json.repository ?? 'YOUR_REPOSITORY') }}",
+              "type": "string"
+            },
+            {
+              "id": "8cd082e5-e1c6-4ab5-8d2d-bf447f9dce85",
+              "name": "branch",
+              "value": "={{ String($json.branch ?? 'docs/generated') }}",
+              "type": "string"
+            },
+            {
+              "id": "a29fed04-8ca7-4212-a373-e6f5bd5d1b25",
+              "name": "forceBootstrap",
+              "value": "={{ Boolean($json.forceBootstrap ?? false) }}",
+              "type": "boolean"
+            },
+            {
+              "id": "7000903d-668c-41c8-b84e-54a0e799591d",
+              "name": "documentationMode",
+              "value": "bootstrap",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f9992bd0-f731-4a10-a50f-dff2a0effbe3",
+      "name": "Configuração Bootstrap",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.repository }}",
+          "mode": "name"
+        },
+        "filePath": "={{ \"projects/\" + $(\"Configuração Bootstrap\").first().json.projectSlug + \"/project.json\" }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $(\"Configuração Bootstrap\").first().json.branch }}"
+        }
+      },
+      "id": "85c62e68-971c-42e0-ae89-99cbc112c8a4",
+      "name": "Consultar projeto existente",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        80
+      ],
+      "webhookId": "a0550118-6714-4496-89e6-6ce7e13f8abc",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg=$('Configuração Bootstrap').first().json;\n  if(cfg.documentationLayout!=='separated'){\n    throw new Error('documentationLayout inválido: '+cfg.documentationLayout+'. Use separated.');\n  }\n  const exists=typeof $json.sha==='string';\n  if(exists&&!cfg.forceBootstrap){\n    throw new Error('Bootstrap já concluído para '+cfg.projectSlug+'. Use forceBootstrap somente com revisão explícita.');\n  }\n  return [{json:cfg}];"
+      },
+      "id": "6f3dbc1b-f042-4b77-bf2f-a9abc2edfe40",
+      "name": "Validar primeira execução",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_CORE_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Core - Documentação n8n (Dry Run)"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "49ef391e-83f5-4d12-99c4-bb47fee8ff61",
+      "name": "Executar Core do projeto",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg=$('Configuração Bootstrap').first().json;\n  const projects=$input.first().json.payloads??[];\n  const project=projects.find(item=>item.projectSlug===cfg.projectSlug);\n  if(!project) throw new Error('Core não retornou o projeto '+cfg.projectSlug);\n  const encodePath=value=>String(value).split('/').map(encodeURIComponent).join('/');\n  const repositoryUrl='https://github.com/'+encodeURIComponent(cfg.owner)+'/'+encodeURIComponent(cfg.repository);\n  const documentationPath='projects/'+project.projectSlug;\n  const readmeUrl=repositoryUrl+'/blob/'+encodePath(cfg.branch)+'/'+encodePath(documentationPath)+'/README.md';\n  const repositoryContext={\n    owner:cfg.owner,\n    repository:cfg.repository,\n    branch:cfg.branch,\n    repositoryUrl,\n    readmeUrl,\n    url:readmeUrl,\n    documentationPath\n  };\n  return [{json:{...project,aiMode:cfg.aiMode,documentationLayout:cfg.documentationLayout,documentationMode:'bootstrap',repositoryContext}}];"
+      },
+      "id": "373c966a-4f36-4ce4-b3e3-5dc1860ee9ce",
+      "name": "Selecionar projeto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.repository }}",
+          "mode": "name"
+        },
+        "filePath": "={{ \"projects/\" + $(\"Configuração Bootstrap\").first().json.projectSlug + \"/README.md\" }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $(\"Configuração Bootstrap\").first().json.branch }}"
+        }
+      },
+      "id": "5f1e60de-437f-47a1-917c-4852b0108b70",
+      "name": "Consultar README anterior",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        1440,
+        80
+      ],
+      "webhookId": "d7f323d7-fc52-49e4-8988-8a693fb3b01d",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.repository }}",
+          "mode": "name"
+        },
+        "filePath": "={{ \"projects/\" + $(\"Configuração Bootstrap\").first().json.projectSlug + \"/docs/TECHNICAL.md\" }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $(\"Configuração Bootstrap\").first().json.branch }}"
+        }
+      },
+      "id": "2b70f338-3d85-4dfa-84cf-83a16b2c0e89",
+      "name": "Consultar documento técnico anterior",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        80
+      ],
+      "webhookId": "4f9b052e-ff16-4434-a96f-f762b32381cd",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.repository }}",
+          "mode": "name"
+        },
+        "filePath": "={{ \"projects/\" + $(\"Configuração Bootstrap\").first().json.projectSlug + \"/docs/INTERNAL.md\" }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $(\"Configuração Bootstrap\").first().json.branch }}"
+        }
+      },
+      "id": "3c8f8c7f-4066-444e-9d74-ffeb0aa56ca6",
+      "name": "Consultar documento interno anterior",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        1920,
+        80
+      ],
+      "webhookId": "f7469746-4c9f-4fe8-844f-25e8022b1c06",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.repository }}",
+          "mode": "name"
+        },
+        "filePath": "={{ \"projects/\" + $(\"Configuração Bootstrap\").first().json.projectSlug + \"/docs/DECISIONS_AND_LEARNINGS.md\" }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $(\"Configuração Bootstrap\").first().json.branch }}"
+        }
+      },
+      "id": "a68ac126-d9a3-4471-b8a2-843ee74a3f8b",
+      "name": "Consultar decisões e aprendizados anteriores",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        80
+      ],
+      "webhookId": "f317a01f-b24a-47cd-9f90-384293867d1a",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const project=$('Selecionar projeto').first().json;\nconst maximumBytes=120000;\nconst decodeFile=nodeName=>{\n  let data={};\n  try{data=$(nodeName).first().json??{};}catch{return {markdown:'',sha:null};}\n  if(typeof data.content!=='string') return {markdown:'',sha:null};\n  let markdown='';\n  try{markdown=Buffer.from(data.content.replace(/\\s/g,''),'base64').toString('utf8').trim();}\n  catch{throw new Error(nodeName+' não pôde ser decodificado.');}\n  if(Buffer.byteLength(markdown,'utf8')>maximumBytes){\n    throw new Error(nodeName+' excede 120000 bytes. Reduza o arquivo antes do Bootstrap.');\n  }\n  return {markdown,sha:typeof data.sha==='string'?data.sha:null};\n};\nconst sanitize=value=>String(value??'')\n  .replace(/Bearer\\s+[A-Za-z0-9._~+\\/=\\-]+/gi,'Bearer {{REDACTED_TOKEN}}')\n  .replace(/\\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{16,})\\b/g,'{{REDACTED_TOKEN}}')\n  .replace(/((?:api[_ -]?key|access[_ -]?token|token|secret|password)\\s*[:=]\\s*)[^\\s\\x60\\\"'<>]+/gi,'$1{{REDACTED_VALUE}}')\n  .replace(/https?:\\/\\/(?:localhost|127\\.0\\.0\\.1|10\\.\\d+\\.\\d+\\.\\d+|192\\.168\\.\\d+\\.\\d+)(?::\\d+)?/gi,'https://internal.example');\nconst readme=decodeFile('Consultar README anterior');\nconst technical=decodeFile('Consultar documento técnico anterior');\nconst internal=decodeFile('Consultar documento interno anterior');\nconst decisionsAndLearnings=decodeFile('Consultar decisões e aprendizados anteriores');\nconst projectsIndexReadme=decodeFile('Consultar README da pasta projects');\nconst legacyReview=decodeFile('Consultar PR_REVIEW legado');\nconst previousDocumentation=(readme.markdown||technical.markdown||internal.markdown)\n  ? {\n      readmeMarkdown:sanitize(readme.markdown),\n      technicalMarkdown:sanitize(technical.markdown),\n      internalMarkdown:sanitize(internal.markdown),\n      sourceShas:{readme:readme.sha,technical:technical.sha,internal:internal.sha},\n      sanitized:true\n    }\n  : null;\nreturn [{json:{\n  ...project,\n  documentationLayout:'separated',\n  previousDocumentation,\n  decisionsAndLearnings:{markdown:decisionsAndLearnings.markdown,sha:decisionsAndLearnings.sha},\n  projectsIndexReadme:{markdown:projectsIndexReadme.markdown,sha:projectsIndexReadme.sha},\n  legacyReviewFileExists:Boolean(legacyReview.sha)\n}}];"
+      },
+      "id": "47a2adf9-004a-43bb-8b09-c483938e8b17",
+      "name": "Anexar documentação anterior",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_AI_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "AI - Enriquecimento da Documentação n8n"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "2db668f5-40e3-4e66-80e6-78a3cb239b27",
+      "name": "Executar enriquecimento inicial",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        3120,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg=$('Configuração Bootstrap').first().json;\n  const input=$input.first().json;\n  const project=Array.isArray(input.payloads)?input.payloads[0]:input;\n  if(!project?.projectSlug) throw new Error('Projeto ausente na preparação do Bootstrap.');\n  const manifest=JSON.parse(project.technicalFiles?.['project.json']??'{}');\n  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'})\n    .format(new Date()).replace(/-/g,'.');\n  const updatedManifest={\n    ...manifest,\n    bootstrapCompleted:true,\n    sourceOfTruth:'github',\n    aiMode:cfg.aiMode,\n    documentationLayout:'separated',\n    documentationSchemaVersion:2,\n    currentVersion:today+'.1',\n    bootstrapAt:new Date().toISOString(),\n    reviewRequired:true\n  };\n  const technicalFiles={...(project.technicalFiles??{})};\n  delete technicalFiles['project.json'];\n  const relativeFiles={\n    ...technicalFiles,\n    ...(project.humanFiles??{}),\n    'project.json':JSON.stringify(updatedManifest,null,2)\n  };\n  const projectFiles=Object.fromEntries(Object.entries(relativeFiles).map(([file,content])=>[\n    'projects/'+project.projectSlug+'/'+file,content\n  ]));\n  const repositoryFiles=Object.fromEntries(Object.entries(project.repositoryFiles??{})\n    .filter(([file,content])=>file==='projects/README.md'&&typeof content==='string'));\n  const files={...projectFiles,...repositoryFiles};\n  const deletePaths=(project.repositoryDeletePaths??[])\n    .map(String).filter(file=>file==='PR_REVIEW.md');\n  return [{json:{\n    owner:cfg.owner,\n    repository:cfg.repository,\n    branch:cfg.branch,\n    projectSlug:project.projectSlug,\n    files,\n    deletePaths,\n    commitMessage:'docs('+project.projectSlug+'): bootstrap separated documentation'\n  }}];"
+      },
+      "id": "b09ffd55-1c18-496f-b98d-19b4a500a772",
+      "name": "Preparar publicação inicial",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3456,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_PUBLISHER_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Publisher - GitHub n8n-workflows"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "bdccfdbd-2500-4f03-98ca-f9ff7e5329bf",
+      "name": "Publicar Bootstrap",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        3696,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const publication=$input.first().json;\n  const cfg=$('Configuração Bootstrap').first().json;\n  return [{json:{\n    status:'bootstrap-complete',\n    projectSlug:cfg.projectSlug,\n    aiMode:cfg.aiMode,\n    documentationLayout:cfg.documentationLayout,\n    repository:cfg.owner+'/'+cfg.repository,\n    branch:cfg.branch,\n    publication,\n    reviewRequired:true\n  }}];"
+      },
+      "id": "918d11b4-804e-4944-9208-2a1bc4b09eba",
+      "name": "Resumo do Bootstrap",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3936,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Bootstrap — pacote separado e publicação atômica\n\n- Recebe projectSlug de outro workflow.\n- Gera um README.md operacional com Mermaid, docs/TECHNICAL.md, docs/INTERNAL.md e o modelo docs/DECISIONS_AND_LEARNINGS.md.\n- Cria projects/README.md quando ausente ou vazio; se houver conteúdo, preserva-o e atualiza somente a seção #pr-review.\n- Remove PR_REVIEW.md legado no mesmo commit quando ele existir.\n- Bloqueia reexecução quando project.json existe e forceBootstrap não foi autorizado.\n- Chama o Core determinístico e depois a IA.\n- No rebootstrap, lê e sanitiza os documentos usados pela IA e preserva integralmente o registro de decisões e aprendizados.\n- Publica todo o pacote com no máximo um commit através do Publisher atômico.",
+        "height": 360,
+        "width": 680,
+        "color": 3
+      },
+      "id": "9cda3638-71cb-459e-9023-9d5edf85b004",
+      "name": "Documentação - Bootstrap",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Inputs e credenciais — Bootstrap\n\n### Edit Fields Configuração Bootstrap\n- projectSlug: slug vindo do formulário.\n- documentationLayout: separated.\n- owner, repository, branch: destino GitHub.\n- forceBootstrap: false para projeto novo; true somente no rebootstrap autorizado.\n- aiMode e documentationMode: bootstrap.\n\n### Credencial e dependências\n- Use a mesma credencial GitHub API em todas as consultas.\n- As consultas incluem documentos do projeto, DECISIONS_AND_LEARNINGS.md, projects/README.md e PR_REVIEW.md legado.\n- Selecione Core, IA e Publisher nos nodes Execute Workflow.\n- A escrita GitHub fica no Publisher atômico.\n\n### Migração\nprojects/README.md é criado quando ausente ou vazio; quando preenchido, recebe uma seção entre marcadores sem perder o restante. DECISIONS_AND_LEARNINGS.md também é criado quando ausente ou vazio e preservado integralmente quando já possui registros. Se PR_REVIEW.md existir, sua remoção entra no mesmo commit.\n\nGuia completo: docs/inputs/bootstrap.md",
+        "height": 680,
+        "width": 880,
+        "color": 3
+      },
+      "id": "d405fbe4-c354-4bb7-9a50-9f91001e93be",
+      "name": "Configuração e credenciais - Bootstrap",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        -688
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.repository }}",
+          "mode": "name"
+        },
+        "filePath": "projects/README.md",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $(\"Configuração Bootstrap\").first().json.branch }}"
+        }
+      },
+      "id": "45ed9275-dacd-4138-bde5-e159d8447c14",
+      "name": "Consultar README da pasta projects",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        2400,
+        80
+      ],
+      "webhookId": "f7469746-4c9f-4fe8-844f-25e8022b1c06",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Bootstrap\").first().json.repository }}",
+          "mode": "name"
+        },
+        "filePath": "PR_REVIEW.md",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $(\"Configuração Bootstrap\").first().json.branch }}"
+        }
+      },
+      "id": "f759c9cf-b7a2-4cec-bc97-17d208cb3e61",
+      "name": "Consultar PR_REVIEW legado",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        2640,
+        80
+      ],
+      "webhookId": "f7469746-4c9f-4fe8-844f-25e8022b1c06",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Receber configuração do Bootstrap": {
+      "main": [
+        [
+          {
+            "node": "Configuração Bootstrap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuração Bootstrap": {
+      "main": [
+        [
+          {
+            "node": "Consultar projeto existente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar projeto existente": {
+      "main": [
+        [
+          {
+            "node": "Validar primeira execução",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar primeira execução": {
+      "main": [
+        [
+          {
+            "node": "Executar Core do projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar Core do projeto": {
+      "main": [
+        [
+          {
+            "node": "Selecionar projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Selecionar projeto": {
+      "main": [
+        [
+          {
+            "node": "Consultar README anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar enriquecimento inicial": {
+      "main": [
+        [
+          {
+            "node": "Preparar publicação inicial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar publicação inicial": {
+      "main": [
+        [
+          {
+            "node": "Publicar Bootstrap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar Bootstrap": {
+      "main": [
+        [
+          {
+            "node": "Resumo do Bootstrap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar README anterior": {
+      "main": [
+        [
+          {
+            "node": "Consultar documento técnico anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anexar documentação anterior": {
+      "main": [
+        [
+          {
+            "node": "Executar enriquecimento inicial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar documento técnico anterior": {
+      "main": [
+        [
+          {
+            "node": "Consultar documento interno anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar documento interno anterior": {
+      "main": [
+        [
+          {
+            "node": "Consultar decisões e aprendizados anteriores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar PR_REVIEW legado": {
+      "main": [
+        [
+          {
+            "node": "Anexar documentação anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar README da pasta projects": {
+      "main": [
+        [
+          {
+            "node": "Consultar PR_REVIEW legado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar decisões e aprendizados anteriores": {
+      "main": [
+        [
+          {
+            "node": "Consultar README da pasta projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

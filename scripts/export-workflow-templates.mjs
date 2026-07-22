@@ -2,6 +2,7 @@
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { buildVersionedWorkflows } from './build-versioned-workflows.mjs';
 
 const requiredEnvironment = [
   'N8N_API_URL',
@@ -202,7 +203,7 @@ function createPortableWorkflow(workflow, workflowKind) {
   };
 }
 
-const outputDirectory = path.resolve('workflows');
+const outputDirectory = path.resolve('workflows/n8n-2.28.6');
 await mkdir(outputDirectory, { recursive: true });
 
 for (const [workflowKind, workflowId] of Object.entries(workflowIds)) {
@@ -212,3 +213,5 @@ for (const [workflowKind, workflowId] of Object.entries(workflowIds)) {
   await writeFile(outputPath, `${JSON.stringify(portable, null, 2)}\n`, 'utf8');
   console.log(`Exportado: ${outputPath}`);
 }
+
+await buildVersionedWorkflows();

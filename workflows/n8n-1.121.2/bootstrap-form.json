@@ -3,23 +3,16 @@
   "nodes": [
     {
       "parameters": {
-        "authentication": "n8nUserAuth",
+        "authentication": "basicAuth",
         "formTitle": "Documentar projeto n8n",
-        "formDescription": "Carregue os projetos identificados pelas tags docs-internal e project:<slug>.",
+        "formDescription": "Clique para consultar os projetos identificados pelas tags configuradas.",
         "formFields": {
           "values": [
             {
-              "fieldLabel": "Confirmação",
-              "fieldType": "checkbox",
-              "fieldName": "confirmLoad",
-              "fieldOptions": {
-                "values": [
-                  {
-                    "option": "Carregar projetos disponíveis"
-                  }
-                ]
-              },
-              "requiredField": true
+              "fieldLabel": "Carregar projetos",
+              "fieldType": "hiddenField",
+              "fieldName": "loadProjects",
+              "fieldValue": "true"
             }
           ]
         },
@@ -29,14 +22,13 @@
           "buttonLabel": "Carregar projetos",
           "path": "bootstrap-documentacao",
           "ignoreBots": true,
-          "includeUserInOutput": true,
           "useWorkflowTimezone": true
         }
       },
       "id": "1aaa28de-3308-4761-9c5e-a4eb6877850d",
       "name": "Abrir formulário de documentação",
       "type": "n8n-nodes-base.formTrigger",
-      "typeVersion": 2.6,
+      "typeVersion": 2.3,
       "position": [
         -896,
         0
@@ -132,7 +124,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const payloads=$('Descobrir projetos documentáveis').first().json.payloads??[];\nconst published=new Set($input.all()\n  .map(item=>item.json??{})\n  .filter(item=>item.type==='dir'&&String(item.path??'').startsWith('projects/'))\n  .map(item=>String(item.name??'').trim().toLowerCase())\n  .filter(Boolean));\nconst projects=payloads\n  .filter(item=>item?.kind==='project'&&item?.projectSlug)\n  .map(item=>({projectSlug:String(item.projectSlug),title:String(item.title??item.projectSlug)}))\n  .filter(item=>!published.has(item.projectSlug.toLowerCase()))\n  .sort((a,b)=>a.projectSlug.localeCompare(b.projectSlug));\nif(projects.length===0) throw new Error('Nenhum projeto novo está disponível. Os projetos encontrados já possuem Bootstrap.');\nreturn [{json:{\n  availableProjects:projects.map(item=>item.projectSlug),\n  formDefinition:[{\n    fieldLabel:'Projeto',\n    fieldName:'projectSlug',\n    fieldType:'dropdown',\n    fieldOptions:{values:projects.map(item=>({option:item.projectSlug}))},\n    requiredField:true\n  }]\n}}];"
+        "jsCode": "const payloads=$('Descobrir projetos documentáveis').first().json.payloads??[];\nconst published=new Set($input.all()\n  .map(item=>item.json??{})\n  .filter(item=>item.type==='dir'&&String(item.path??'').startsWith('projects/'))\n  .map(item=>String(item.name??'').trim().toLowerCase())\n  .filter(Boolean));\nconst projects=payloads\n  .filter(item=>item?.kind==='project'&&item?.projectSlug)\n  .map(item=>({projectSlug:String(item.projectSlug),title:String(item.title??item.projectSlug)}))\n  .sort((a,b)=>a.projectSlug.localeCompare(b.projectSlug));\nif(projects.length===0) throw new Error('Nenhum projeto documentável foi encontrado pelas tags configuradas.');\nreturn [{json:{\n  availableProjects:projects.map(item=>item.projectSlug),\n  publishedProjects:projects.filter(item=>published.has(item.projectSlug.toLowerCase())).map(item=>item.projectSlug),\n  formDefinition:[{\n    fieldLabel:'Projeto',\n    fieldType:'dropdown',\n    fieldOptions:{values:projects.map(item=>({option:item.projectSlug}))},\n    requiredField:true\n  }]\n}}];"
       },
       "id": "a27ae2e7-55f5-4856-8775-26cc85f9a488",
       "name": "Preparar projetos para seleção",
@@ -146,17 +138,17 @@
     {
       "parameters": {
         "defineForm": "json",
-        "jsonOutput": "={{ JSON.stringify($json.formDefinition) }}",
+        "jsonOutput": "={{ $json.formDefinition }}",
         "options": {
-          "formTitle": "Escolha o projeto",
-          "formDescription": "A documentação inicial será gerada por IA e publicada no GitHub. Projetos já inicializados serão bloqueados.",
+          "formTitle": "Escolha o projeto e o estilo do README",
+          "formDescription": "O Bootstrap publicará um README operacional com Mermaid, uma documentação técnica, um contexto interno e um roteiro de revisão. Projetos já publicados preservam e reorganizam os documentos humanos existentes.",
           "buttonLabel": "Gerar documentação"
         }
       },
       "id": "c9f9060b-a769-40dd-a7cb-f5350ac56ba9",
       "name": "Escolher projeto",
       "type": "n8n-nodes-base.form",
-      "typeVersion": 2.5,
+      "typeVersion": 2.3,
       "position": [
         192,
         0
@@ -165,7 +157,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const projectSlug=String($json.projectSlug??'').trim().toLowerCase();\nconst available=$('Preparar projetos para seleção').first().json.availableProjects??[];\nif(!available.includes(projectSlug)) throw new Error('Projeto inválido ou não disponível: '+projectSlug);\nconst cfg=$('Configuração do formulário').first().json;\nreturn [{json:{\n  projectSlug,\n  aiMode:'bootstrap',\n  owner:cfg.owner,\n  repository:cfg.repository,\n  branch:cfg.branch,\n  forceBootstrap:false,\n  documentationMode:'bootstrap'\n}}];"
+        "jsCode": "const projectSlug=String($json.projectSlug??$json.Projeto??'').trim().toLowerCase();\nconst selection=$('Preparar projetos para seleção').first().json;\nconst available=selection.availableProjects??[];\nconst published=selection.publishedProjects??[];\nif(!available.includes(projectSlug)) throw new Error('Projeto inválido ou não disponível: '+projectSlug);\nconst alreadyPublished=published.includes(projectSlug);\nconst cfg=$('Configuração do formulário').first().json;\nreturn [{json:{\n  projectSlug,\n  documentationLayout:'separated',\n  aiMode:'bootstrap',\n  owner:cfg.owner,\n  repository:cfg.repository,\n  branch:cfg.branch,\n  forceBootstrap:alreadyPublished,\n  documentationMode:'bootstrap'\n}}];"
       },
       "id": "b8a75f97-78c0-4b34-87c2-dcb3e88c0643",
       "name": "Validar seleção",
@@ -201,15 +193,15 @@
       "parameters": {
         "operation": "completion",
         "completionTitle": "Documentação gerada",
-        "completionMessage": "={{ 'O Bootstrap do projeto ' + $json.projectSlug + ' foi concluído. Revise a branch ' + $json.branch + ' no GitHub.' }}",
+        "completionMessage": "={{ 'O Bootstrap do projeto ' + $json.projectSlug + ' foi concluído. Revise README.md, docs/TECHNICAL.md e docs/INTERNAL.md na branch ' + $json.branch + ' seguindo projects/README.md#pr-review.' }}",
         "options": {
           "formTitle": "Bootstrap concluído"
         }
       },
       "id": "defd82c8-80b3-4383-ad47-0cea7b3828c4",
-      "name": "Confirmar conclusão",
+      "name": "Exibir conclusão",
       "type": "n8n-nodes-base.form",
-      "typeVersion": 2.5,
+      "typeVersion": 2.3,
       "position": [
         912,
         0
@@ -218,7 +210,7 @@
     },
     {
       "parameters": {
-        "content": "## Formulário — entrada humana do Bootstrap\n\n- Exige login de usuário do n8n.\n- Descobre projetos dinamicamente pelo Core.\n- Oculta projetos já publicados no GitHub.\n- Aceita somente slugs apresentados no dropdown.\n- Nunca expõe owner, repositório, branch ou forceBootstrap.\n- Chama o Bootstrap como subworkflow e aguarda a publicação.\n- URL: /form/bootstrap-documentacao",
+        "content": "## Formulário — entrada humana do Bootstrap\n\n- Usa somente os nodes de formulário padrão do n8n.\n- A primeira página possui apenas o botão Carregar projetos.\n- Depois do clique, o Core monta a lista com project:<slug>.\n- Exibe projetos novos e já publicados.\n- O pacote possui README operacional com Mermaid, documento técnico e documento interno.\n- O roteiro compartilhado fica em projects/README.md#pr-review.\n- Em projetos já publicados, os documentos anteriores são preservados.\n- A escolha de projeto publicado ativa forceBootstrap.\n- Chama o Bootstrap e aguarda o commit atômico.\n- URL: /form/bootstrap-documentacao",
         "height": 280,
         "width": 680,
         "color": 5
@@ -265,7 +257,7 @@
     },
     {
       "parameters": {
-        "content": "## Inputs e credenciais — Formulário\n\n### Campos do usuário\n- `confirmLoad` (checkbox controlado): precisa ser marcado para carregar os projetos.\n- `projectSlug` (lista controlada): escolha um projeto descoberto pelas tags e ainda não publicado.\n\n### Edit Fields `Configuração do formulário`\n- `requiredTag`, `projectTagPrefix` (livres): normalmente `docs-internal` e `project:`.\n- `owner`, `repository`, `branch` (livres e obrigatórios): repositório consultado pelo formulário.\n- Fixos: `projectSlug=''`, `aiMode=bootstrap`, `documentationMode=form-discovery`.\n\n### Credenciais e dependências\n- Configure autenticação `n8n User Auth` no Form Trigger.\n- `Listar projetos já publicados`: credencial **GitHub API** com leitura.\n- Selecione o Core em `Descobrir projetos documentáveis` e o Bootstrap em `Executar Bootstrap selecionado`.\n\n### Exemplo\n`requiredTag=docs-internal`, `projectTagPrefix=project:`, `owner=acme`, `repository=n8n-workflows`, `branch=docs/generated`; usuário escolhe `carteira-invest`.\n\nGuia completo: `docs/inputs/bootstrap-form.md`",
+        "content": "## Inputs e credenciais — Formulário\n\n### Campo do usuário\n- projectSlug (lista controlada): escolha qualquer projeto descoberto pelas tags.\n- Não há escolha de estilo: o Bootstrap sempre separa conteúdo técnico e interno.\n- Projetos já publicados preservam e reorganizam os documentos humanos anteriores.\n\n### Edit Fields Configuração do formulário\n- requiredTag, projectTagPrefix (livres): normalmente docs-internal e project:.\n- owner, repository, branch (livres e obrigatórios): repositório consultado pelo formulário.\n- Fixos: projectSlug vazio, aiMode=bootstrap, documentationMode=form-discovery.\n\n### Credenciais e dependências\n- Configure a autenticação exigida pela variante no Form Trigger.\n- Listar projetos já publicados: credencial GitHub API com leitura.\n- Selecione o Core em Descobrir projetos documentáveis e o Bootstrap em Executar Bootstrap selecionado.\n\n### Exemplo\nowner=acme, repository=n8n-workflows, branch=docs/generated; o usuário escolhe carteira-invest.\n\nGuia completo: docs/inputs/bootstrap-form.md",
         "height": 720,
         "width": 900,
         "color": 3
@@ -275,8 +267,8 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        720,
-        -720
+        -96,
+        -800
       ]
     }
   ],
@@ -351,7 +343,7 @@
       "main": [
         [
           {
-            "node": "Confirmar conclusão",
+            "node": "Exibir conclusão",
             "type": "main",
             "index": 0
           }
@@ -373,5 +365,7 @@
   "settings": {
     "executionOrder": "v1",
     "timezone": "America/Sao_Paulo"
-  }
+  },
+  "active": false,
+  "versionId": "11212000-0000-4000-8000-000000000005"
 }

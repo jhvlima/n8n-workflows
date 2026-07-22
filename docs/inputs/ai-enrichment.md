@@ -10,7 +10,13 @@ Este workflow não possui Edit Fields administrativo. No pipeline oficial, ele r
 | --- | --- | --- |
 | `kind` | Fixo | Deve ser `project`. |
 | `projectSlug` | Obrigatório | Slug validado pelo Core. |
+| `documentationLayout` | Fixo | Deve ser `separated`. |
+| `components` | Obrigatório | Lista de componentes; cada `workflowSlug` precisa receber um documento individual. |
 | `technicalFiles` | Obrigatório | Deve conter `project.json` e pelo menos um `workflows/*.sanitized.json`. |
+| `previousDocumentation` | Opcional | No rebootstrap, contém README, documento técnico e documento interno anteriores já sanitizados. |
+| `projectsIndexReadme` | Opcional | `projects/README.md` lido pelo Bootstrap para preservação; não entra em `aiInput` e não é enviado ao modelo. |
+| `decisionsAndLearnings` | Opcional | Registro consultivo anterior; não entra em `aiInput` e é preservado integralmente. |
+| `legacyReviewFileExists` | Booleano | Indica se o antigo `PR_REVIEW.md` deve ser removido durante a migração. |
 | `documentationMode` | Fixo no pipeline | Use `bootstrap`; a IA não participa da Maintenance. |
 
 Não monte esse payload manualmente em produção. Chame o Core e encaminhe sua saída.
@@ -19,18 +25,30 @@ Não monte esse payload manualmente em produção. Chame o Core e encaminhe sua 
 
 Configure uma credencial **OpenAI API** no node conectado `Modelo OpenAI`. O node `Google Gemini Chat Model` é uma alternativa desconectada; só exige credencial Google Gemini se você decidir conectá-lo no lugar do modelo atual.
 
+O campo **Text** do node `Gerar enriquecimento estruturado` define dois contratos: `technicalMarkdown` para arquitetura e operação, e `internalMarkdown` para contexto humano e organizacional. A IA também retorna um resumo curto, Mermaid, documentos individuais e pendências.
+
+O node `Montar documento para revisão` cria deterministicamente o `README.md` do projeto com visão geral, componentes, fluxo principal ou prioritário, entradas e saídas, integrações, operação e arquitetura Mermaid. Esses blocos reutilizam o resumo e as seções já validadas de `technicalMarkdown`, evitando duas versões independentes do mesmo fato. O node também cria `projects/README.md` quando ausente ou vazio e, quando preenchido, insere ou substitui somente a seção delimitada de revisão, com o anchor `#pr-review`. As seções que ainda contêm `Precisa de confirmação` permanecem nos documentos do projeto e são registradas em `aiDocumentation.pendingReviewItems`. Ao mudar títulos obrigatórios, mantenha o builder e `scripts/validate-repository.mjs` sincronizados.
+
 ## Exemplo mínimo de teste
 
 ```json
 {
   "kind": "project",
   "projectSlug": "carteira-invest",
+  "documentationLayout": "separated",
   "documentationMode": "bootstrap",
+  "components": [
+    {
+      "workflowSlug": "carteira",
+      "name": "Carteira",
+      "role": "workflow"
+    }
+  ],
   "technicalFiles": {
     "project.json": "{\"projectSlug\":\"carteira-invest\"}",
-    "workflows/main.sanitized.json": "{\"name\":\"Carteira\",\"nodes\":[]}"
+    "workflows/carteira.sanitized.json": "{\"name\":\"Carteira\",\"nodes\":[]}"
   }
 }
 ```
 
-A saída humana contém somente `README.md` e `docs/architecture.mmd`, ambos sujeitos a revisão.
+A saída humana do projeto contém `README.md`, `docs/TECHNICAL.md`, `docs/INTERNAL.md`, `docs/DECISIONS_AND_LEARNINGS.md` e um `docs/workflows/<workflow-slug>.md` para cada componente. O registro de decisões recebe um esqueleto quando ausente ou vazio e mantém exatamente o conteúdo anterior quando já estiver preenchido. A saída de repositório contém `projects/README.md` criado ou mesclado e, quando necessário, a solicitação de remoção do `PR_REVIEW.md` legado. O Mermaid fica incorporado em `TECHNICAL.md`, sem arquivo `.mmd` separado. Qualquer seção ou documento obrigatório ausente interrompe o Bootstrap.
