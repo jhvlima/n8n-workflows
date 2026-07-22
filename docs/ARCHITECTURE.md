@@ -44,25 +44,52 @@ Uma tool compartilhada é documentada uma vez e pode aparecer como dependência 
 
 ## Contrato da IA
 
-A IA recebe somente o snapshot sanitizado do Core e produz exatamente dois arquivos humanos no Bootstrap:
+A IA recebe o snapshot sanitizado do Core e, em um rebootstrap, os documentos humanos anteriores sanitizados pelo Bootstrap. O layout é fixo:
 
-- `README.md`, em Markdown e português do Brasil;
-- `docs/architecture.mmd`, como Mermaid puro.
+```text
+projects/
+├── README.md                        # índice e seção global #pr-review
+└── <slug>/
+    ├── README.md                    # mapa operacional e Mermaid
+    └── docs/
+        ├── TECHNICAL.md             # arquitetura e operação
+        ├── INTERNAL.md              # contexto humano e organizacional
+        ├── DECISIONS_AND_LEARNINGS.md # registro consultivo preservado
+        └── workflows/<workflow-slug>.md
+```
 
-Depois de validar o Mermaid, a etapa de montagem o incorpora no `README.md` dentro de um bloco `mermaid` e adiciona um link relativo para `docs/architecture.mmd`.
+`README.md` é montado deterministicamente a partir do resumo, dos componentes e de seções já validadas do documento técnico. Ele contém visão geral, componentes, fluxo principal ou prioritário, entradas e saídas, integrações, operação e o mesmo Mermaid da arquitetura. `TECHNICAL.md` aprofunda objetivo, usuários, gatilhos, fluxo, índice dos workflows, Mermaid, integrações, IA, dados, saídas, operação, erros e limitações. `INTERNAL.md` recebe nome e tipo do projeto, datas, responsáveis, repositório, cliente, relacionamento, descrição do produto, escopo, decisões, riscos e pendências. `DECISIONS_AND_LEARNINGS.md` é um registro consultivo determinístico: o primeiro Bootstrap cria o esqueleto e os seguintes preservam o conteúdo existente.
+
+A seção `#pr-review` não pertence a um projeto específico: fica em `projects/README.md` e orienta a revisão de todos os PRs. O arquivo é criado se estiver ausente ou vazio; quando já possui conteúdo, tudo fora dos marcadores é preservado. Pendências específicas permanecem nas seções de confirmação dos documentos do projeto e em `aiDocumentation.pendingReviewItems`.
+
+Cada documento individual de workflow contém, nesta ordem:
+
+1. papel no projeto;
+2. gatilhos e entradas;
+3. etapas principais;
+4. integrações e tipos de credenciais;
+5. dependências;
+6. saídas;
+7. tratamento de erros;
+8. limitações e pontos de confirmação.
+
+Quando uma informação não estiver comprovada, a IA escreve `Precisa de confirmação`; quando não se aplicar, utiliza `Não se aplica`. Datas de atualização dos workflows não podem ser tratadas como datas do projeto. Cliente, responsáveis e relacionamento não podem ser inferidos. No rebootstrap, fatos do README legado e dos documentos separados são preservados e movidos para o arquivo correto; divergências ficam como pendências.
+
+A montagem valida todos os títulos, exige exatamente um documento por `workflowSlug` e rejeita seções vazias, duplicadas ou desconhecidas. O Mermaid é normalizado para `ID["rótulo"]` e incorporado em `docs/TECHNICAL.md`; não existe `architecture.mmd` separado.
 
 A Maintenance não chama a IA. Depois do Bootstrap, esses documentos podem ser revisados pelo time sem risco de sobrescrita diária.
 
 ## Contrato do Publisher
 
-O Publisher recebe caminhos completos e não conhece regras de Bootstrap ou Maintenance. Cada arquivo é consultado, comparado e então criado, atualizado ou ignorado.
+O Publisher recebe exatamente um payload de publicação por execução e não conhece regras de Bootstrap ou Maintenance. Ele aceita escrita somente em `projects/**`, o que inclui o índice `projects/README.md`. A única remoção permitida na raiz é a do `PR_REVIEW.md` legado.
 
-Como a escrita é serial, os orquestradores enviam `project.json` por último. Assim ele funciona como marcador de uma versão completamente publicada.
+Ele lê a referência e o commit atual da branch, cria uma nova tree baseada na tree existente, compara os SHAs e, quando há mudança, cria um único commit com todos os arquivos. A referência da branch só é movida no final e com `force=false`. Portanto, `project.json`, documentos e snapshots tornam-se visíveis juntos; a ordem dos arquivos no payload não possui mais função transacional.
 
 ## Falhas e idempotência
 
 - Core falhou: nada é publicado.
 - IA falhou: a publicação do projeto é interrompida.
-- Publisher falhou antes de `project.json`: a próxima execução ainda pode recuperar os arquivos.
+- Publisher falhou antes de atualizar a referência: a branch permanece no commit anterior; objetos Git ainda não referenciados podem existir, mas nenhum arquivo parcial fica visível.
+- A branch avançou durante a execução: o update sem force falha e a execução deve ser repetida sobre a nova base.
 - Hash igual: Maintenance não chama Publisher.
 - Projeto sem `project.json` concluído: Maintenance exige Bootstrap.

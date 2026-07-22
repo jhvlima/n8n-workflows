@@ -10,7 +10,7 @@ Para credenciais e exemplos completos de um workflow específico, consulte [Inpu
 | --- | --- |
 | Core — `Configuração` | `requiredTag`, `projectTagPrefix`, `projectSlug`, `aiMode`, `documentationMode` |
 | Formulário — `Configuração do formulário` | `requiredTag`, `projectTagPrefix`, `projectSlug`, `aiMode`, `documentationMode`, `owner`, `repository`, `branch` |
-| Bootstrap — `Configuração Bootstrap` | `projectSlug`, `aiMode`, `owner`, `repository`, `branch`, `forceBootstrap`, `documentationMode` |
+| Bootstrap — `Configuração Bootstrap` | `projectSlug`, `documentationLayout`, `aiMode`, `owner`, `repository`, `branch`, `forceBootstrap`, `documentationMode` |
 | Maintenance — `Configuração Maintenance` | `requiredTag`, `projectTagPrefix`, `projectSlug`, `aiMode`, `owner`, `repository`, `branch`, `documentationMode` |
 
 ## Dicionário de campos
@@ -35,7 +35,7 @@ O campo aceita texto livre tecnicamente, mas o pipeline completo fornecido press
 | Padrão | `project:` |
 | Onde aparece | Core, Formulário e Maintenance |
 
-Identifica qual tag contém o agrupamento do projeto. Com o padrão, `project:carteira-invest` produz o slug `carteira-invest`. Inclua o separador final no prefixo e mantenha o mesmo valor no Formulário e na Maintenance.
+Identifica qual tag contém o agrupamento do projeto. Com o padrão, `project:carteira-invest` produz o slug `carteira-invest`. Inclua o separador final no prefixo e mantenha o mesmo valor no Formulário e na Maintenance. Um workflow que tenha `requiredTag`, mas nenhuma tag com esse prefixo, é ignorado. Duas ou mais tags com o prefixo continuam sendo um erro por tornarem o projeto ambíguo.
 
 Assim como `requiredTag`, o campo aceita texto livre no Core, mas o Bootstrap fornecido usa o padrão `project:`. Mantenha esse valor para o funcionamento completo sem customizar os workflows.
 
@@ -59,6 +59,16 @@ O Core normaliza o valor para minúsculas, remove acentos e converte espaços ou
 Atualmente não existem opções operacionais como `never`, `manual` ou `on-change`. Informar outro texto não cria um novo comportamento, pois o Bootstrap chama a IA obrigatoriamente e a Maintenance não possui uma ramificação de IA.
 
 O campo permanece no manifesto como registro explícito da política utilizada. Para desligar ou alterar essa política seria necessário modificar os workflows, não apenas trocar o valor.
+
+### `documentationLayout`
+
+| Valor | Efeito |
+| --- | --- |
+| `separated` | Gera README operacional com Mermaid, documento técnico, documento interno e roteiro de revisão em arquivos separados |
+
+Esse campo é fixo e não aparece no formulário. O Bootstrap registra `documentationLayout=separated` e `documentationSchemaVersion=2` em `project.json`. A Maintenance conserva esses valores, mas não regenera documentos humanos.
+
+O pacote contém `docs/INTERNAL.md`; portanto, a separação editorial não substitui controle de acesso. Use repositório privado ou publique apenas uma cópia explicitamente sanitizada quando houver dados internos.
 
 ### `documentationMode`
 
@@ -108,18 +118,20 @@ A branch precisa existir antes da primeira publicação. Use o mesmo destino nos
 | Opção | Efeito |
 | --- | --- |
 | `false` | Comportamento normal; bloqueia Bootstrap quando `project.json` já existe |
-| `true` | Permite executar novamente e pode substituir `README.md`, `docs/**` e o manifesto |
+| `true` | Lê e sanitiza README, documento técnico e documento interno anteriores, reorganiza o conteúdo e substitui `README.md`, `docs/**` e o manifesto |
 
-Mantenha `false`. `true` não mescla nem lê conscientemente a documentação anterior; é uma opção excepcional de recuperação e deve voltar imediatamente para `false` após o uso.
+Mantenha `false` como padrão administrativo. O formulário envia `true` automaticamente quando o usuário escolhe um projeto já publicado. O README anterior entra como contexto da IA, mas a mesclagem é semântica e não uma união determinística linha a linha. O resultado precisa de revisão humana.
 
 ## Campos apresentados no formulário
 
 | Campo | Opções | Efeito |
 | --- | --- | --- |
-| `confirmLoad` | Desmarcado ou marcado | Somente marcado permite descobrir os projetos |
-| `projectSlug` | Dropdown controlado | Mostra projetos descobertos pelo Core que ainda não foram publicados |
+| `projectSlug` | Dropdown controlado | Mostra todos os projetos descobertos pelo Core; projetos já publicados acionam rebootstrap |
+| `documentationLayout` | `separated` | Valor técnico fixo; não é apresentado ao usuário |
 
-`owner`, `repository`, `branch` e `forceBootstrap` não são expostos ao usuário final.
+O formulário não solicita confirmação para carregar a lista. O Form Trigger padrão apresenta apenas o botão `Carregar projetos`; o campo oculto e fixo `loadProjects=true` acompanha essa submissão técnica.
+
+`owner`, `repository`, `branch` e o valor técnico de `forceBootstrap` não são expostos ao usuário final.
 
 ## Tags obrigatórias
 
@@ -130,9 +142,11 @@ docs-internal
 project:<slug>
 ```
 
-- Use exatamente uma tag `project:<slug>` por workflow.
+- Use exatamente uma tag `project:<slug>` em cada workflow que realmente será documentado.
 - Workflows com o mesmo slug formam um projeto N:1 e compartilham versão e documentação.
 - Um workflow sem `requiredTag` fica fora do pipeline.
+- Um workflow somente com `requiredTag`, sem `project:<slug>`, também fica fora do pipeline e aparece no resumo como ignorado.
+- Um workflow com mais de uma tag `project:<slug>` bloqueia o Core por ambiguidade.
 
 ## Papéis opcionais
 

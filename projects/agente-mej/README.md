@@ -59,6 +59,7 @@ flowchart TD
 
 - [Documentação técnica completa](docs/TECHNICAL.md)
 - [Contexto interno](docs/INTERNAL.md)
+- [Decisões e aprendizados](docs/DECISIONS_AND_LEARNINGS.md)
 - [Roteiro de revisão do PR](../README.md#pr-review)
 - [Documentação individual dos workflows](docs/workflows/)
 

@@ -1,7 +1,0 @@
-flowchart TD
-    HTTP_Request -->|Recebe solicitações| CONFIG[Configurações Iniciais]
-    CONFIG -->|Define parâmetros| Docsify
-    CONFIG -->|Define parâmetros| Mermaid
-    Docsify -->|Renderiza HTML| HTTP_Response[Resposta HTTP]
-    Mermaid -->|Gera diagramas| Docsify
-    HTTP_Response -->|Envia resposta ao usuário| End[Finaliza operação]

@@ -1,0 +1,497 @@
+{
+  "name": "Maintenance - Fechamento Diário n8n",
+  "nodes": [
+    {
+      "id": "714a8b6f-b33f-4779-96a3-6e4aa7dd8ce7",
+      "name": "Executar Maintenance manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "555b433b-0ad1-454f-9dcc-00736f9e7c30",
+      "name": "Fechamento diário 23:50",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        176
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "50 23 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "7031faee-6d0a-4898-b7a7-b278d3102492",
+      "name": "Configuração Maintenance",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        80
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "21d0070c-e899-4811-830c-6168c373a637",
+              "name": "requiredTag",
+              "value": "={{ String($json.requiredTag ?? 'docs-internal') }}",
+              "type": "string"
+            },
+            {
+              "id": "8d8d398b-571d-4cc9-9e9c-d38ce8c80ac9",
+              "name": "projectTagPrefix",
+              "value": "={{ String($json.projectTagPrefix ?? 'project:') }}",
+              "type": "string"
+            },
+            {
+              "id": "bda7df42-5dd9-4cb2-8375-4499ec243d33",
+              "name": "projectSlug",
+              "value": "={{ String($json.projectSlug ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "9c6b9a69-5ba8-424d-857b-a9d9f101b9fd",
+              "name": "aiMode",
+              "value": "bootstrap",
+              "type": "string"
+            },
+            {
+              "id": "3375e9d6-27dd-49e9-bba9-571b7ed8b529",
+              "name": "owner",
+              "value": "={{ String($json.owner ?? 'YOUR_GITHUB_USER') }}",
+              "type": "string"
+            },
+            {
+              "id": "d0e4def4-2fb2-44b6-81b0-9189ae365bc8",
+              "name": "repository",
+              "value": "={{ String($json.repository ?? 'YOUR_REPOSITORY') }}",
+              "type": "string"
+            },
+            {
+              "id": "b40b0f0e-1c11-4f59-a5d9-76032ae7d43b",
+              "name": "branch",
+              "value": "={{ String($json.branch ?? 'docs/generated') }}",
+              "type": "string"
+            },
+            {
+              "id": "a52ac357-a9f2-4e40-aaec-9d169d9c6757",
+              "name": "documentationMode",
+              "value": "maintenance",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f507889e-31ee-45af-b8b0-76a755c2b179",
+      "name": "Executar Core diário",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        80
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_CORE_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Core - Documentação n8n (Dry Run)"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "43398409-2383-42d3-9ec0-661cbc114cbf",
+      "name": "Expandir projetos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        80
+      ],
+      "parameters": {
+        "jsCode": "const cfg=$('Configuração Maintenance').first().json;\n  const projects=$input.first().json.payloads??[];\n  if(projects.length===0) return [{json:{kind:'empty',action:'skipped',reason:'no-projects'}}];\n  return projects.map(project=>({json:{\n    ...project,\n    documentationMode:'maintenance',\n    maintenanceContext:{config:cfg}\n  }}));"
+      }
+    },
+    {
+      "id": "5d6d0a39-bd1c-4e16-8afd-d7e2acdbb140",
+      "name": "Loop por projeto",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        960,
+        80
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "971a3988-6b85-4002-bf3c-ec5749d9323b",
+      "name": "Consultar project.json remoto",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        96
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Maintenance\").first().json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Maintenance\").first().json.repository }}",
+          "mode": "name"
+        },
+        "filePath": "={{ \"projects/\" + $json.projectSlug + \"/project.json\" }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $(\"Configuração Maintenance\").first().json.branch }}"
+        }
+      },
+      "webhookId": "9257bfcb-12c6-41b2-9cf9-d33c3aafc92f"
+    },
+    {
+      "id": "7316c292-6b10-47f6-9ea4-75a276dc5b5f",
+      "name": "Comparar hash funcional",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        96
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const project=$('Loop por projeto').item.json;\n  const cfg=project.maintenanceContext?.config??$('Configuração Maintenance').first().json;\n  let remoteManifest=null;\n  if(typeof $json.content==='string'){\n    try{\n      const text=Buffer.from($json.content.replace(/\\s/g,''),'base64').toString('utf8');\n      remoteManifest=JSON.parse(text);\n    }catch{remoteManifest=null;}\n  }\n  const needsBootstrap=!remoteManifest?.bootstrapCompleted;\n  const changed=!needsBootstrap&&remoteManifest.functionalHash!==project.functionalHash;\n  const aiMode=String(remoteManifest?.aiMode??project.aiMode??'bootstrap');\n  return {json:{\n    ...project,\n    aiMode,\n    documentationMode:'maintenance',\n    maintenanceContext:{\n      config:cfg,\n      remoteManifest,\n      needsBootstrap,\n      changed\n    }\n  }};"
+      }
+    },
+    {
+      "id": "91034958-b780-4b5c-a954-3551ab8afcc7",
+      "name": "Projeto mudou?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1680,
+        96
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "4838c1f0-acec-44f6-9082-a81fc1be56e5",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ String($json.maintenanceContext.changed) }}",
+              "rightValue": "true"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b68141c7-aa73-4b18-a5f0-c01b0b5819f0",
+      "name": "Preparar publicação técnica",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        16
+      ],
+      "parameters": {
+        "jsCode": "const input=$input.first().json;\n  const project=Array.isArray(input.payloads)?input.payloads[0]:input;\n  const context=project.maintenanceContext??{};\n  const cfg=context.config??$('Configuração Maintenance').first().json;\n  const remote=context.remoteManifest??{};\n  const generated=JSON.parse(project.technicalFiles?.['project.json']??'{}');\n  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'})\n    .format(new Date()).replace(/-/g,'.');\n  const current=String(remote.currentVersion??'');\n  const match=current.match(new RegExp('^'+today.replace(/\\./g,'\\\\.')+'\\\\.(\\\\d+)$'));\n  const sequence=match?Number(match[1])+1:1;\n  const version=today+'.'+sequence;\n  const updatedManifest={\n    ...generated,\n    bootstrapCompleted:true,\n    sourceOfTruth:'github',\n    aiMode:String(remote.aiMode??project.aiMode??'bootstrap'),\n    documentationLayout:String(remote.documentationLayout??'legacy'),\n    documentationSchemaVersion:Number(remote.documentationSchemaVersion??1),\n    currentVersion:version,\n    previousFunctionalHash:remote.functionalHash??null,\n    lastMaintenanceAt:new Date().toISOString(),\n    reviewRequired:true\n  };\n  const technicalFiles={...(project.technicalFiles??{})};\n  delete technicalFiles['project.json'];\n  const relativeFiles={\n    ...technicalFiles,\n    'project.json':JSON.stringify(updatedManifest,null,2)\n  };\n  const files=Object.fromEntries(Object.entries(relativeFiles).map(([file,content])=>[\n    'projects/'+project.projectSlug+'/'+file,content\n  ]));\n  return [{json:{\n    owner:cfg.owner,\n    repository:cfg.repository,\n    branch:cfg.branch,\n    projectSlug:project.projectSlug,\n    version,\n    functionalHash:project.functionalHash,\n    files,\n    commitMessage:'docs('+project.projectSlug+'): maintenance '+version\n  }}];"
+      }
+    },
+    {
+      "id": "a3b89db1-44ac-4844-bbfe-871590b2052c",
+      "name": "Publicar Maintenance",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        2640,
+        16
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SELECT_PUBLISHER_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Publisher - GitHub n8n-workflows"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "47e74531-77ee-405a-a02a-21bc9bd64f00",
+      "name": "Registrar projeto atualizado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        16
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepared=$('Preparar publicação técnica').item.json;\n  return {json:{\n    action:'updated',\n    projectSlug:prepared.projectSlug,\n    version:prepared.version,\n    functionalHash:prepared.functionalHash,\n    publication:$json\n  }};"
+      }
+    },
+    {
+      "id": "594eda49-fc6e-4ac5-a56a-9f3e2223114a",
+      "name": "Registrar projeto sem alteração",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        192
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const context=$json.maintenanceContext??{};\n  return {json:{\n    action:context.needsBootstrap?'needs-bootstrap':'skipped',\n    projectSlug:$json.projectSlug,\n    previousHash:context.remoteManifest?.functionalHash??null,\n    currentHash:$json.functionalHash,\n    reason:context.needsBootstrap?'Execute o Bootstrap primeiro.':'Hash funcional sem alteração.'\n  }};"
+      }
+    },
+    {
+      "id": "d7c406ef-a621-4576-9a61-9fa7d45c61fc",
+      "name": "Resumo da Maintenance",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -176
+      ],
+      "parameters": {
+        "jsCode": "const rows=$input.all().map(item=>item.json);\n  return [{json:{\n    status:'maintenance-complete',\n    checkedProjects:rows.length,\n    updated:rows.filter(row=>row.action==='updated').length,\n    skipped:rows.filter(row=>row.action==='skipped').length,\n    needsBootstrap:rows.filter(row=>row.action==='needs-bootstrap').length,\n    projects:rows,\n    reviewRequired:true\n  }}];"
+      }
+    },
+    {
+      "id": "c5d52b6a-a881-4b1d-845b-3240ddf217e3",
+      "name": "Documentação - Maintenance diária",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -480
+      ],
+      "parameters": {
+        "content": "## Maintenance — fechamento diário\n\n- Agenda: 23:50, America/Sao_Paulo.\n- Agrupa projetos por tags do Core.\n- Compara functionalHash com project.json remoto.\n- Sem mudança: não publica.\n- Com mudança: publica somente workflows/ e project.json.\n- Preserva no manifesto o layout e a versão do contrato de documentação.\n- Nunca chama IA e nunca sobrescreve README.md ou docs/.\n- Projetos sem Bootstrap são reportados e ignorados.",
+        "height": 400,
+        "width": 720,
+        "color": 7
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Inputs e credenciais — Maintenance\n\n### Edit Fields `Configuração Maintenance`\n- `requiredTag` e `projectTagPrefix` (livres): normalmente `docs-internal` e `project:`.\n- `projectSlug` (livre): vazio = todos os projetos; preenchido = teste direcionado.\n- `owner`, `repository`, `branch` (livres e obrigatórios): origem do `project.json` e destino técnico.\n- `aiMode` (fixo): `bootstrap`, mantido apenas como metadado. Maintenance nunca chama IA.\n- `documentationMode` (fixo): `maintenance`.\n\n### Credencial e dependências\n- `Consultar project.json remoto`: credencial **GitHub API** com leitura.\n- Selecione o Core em `Executar Core diário` e o Publisher em `Publicar Maintenance`.\n- A escrita GitHub é configurada no Publisher.\n\n### Exemplo\n`requiredTag=docs-internal`, `projectTagPrefix=project:`, `projectSlug=''`, `owner=acme`, `repository=n8n-workflows`, `branch=docs/generated`.\n\nGuia completo: `docs/inputs/daily-maintenance.md`",
+        "height": 680,
+        "width": 900,
+        "color": 7
+      },
+      "id": "a3a17fd6-52fb-4c67-ae82-0eb3f13e091a",
+      "name": "Configuração e credenciais - Maintenance",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        -688
+      ]
+    }
+  ],
+  "connections": {
+    "Executar Maintenance manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configuração Maintenance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fechamento diário 23:50": {
+      "main": [
+        [
+          {
+            "node": "Configuração Maintenance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuração Maintenance": {
+      "main": [
+        [
+          {
+            "node": "Executar Core diário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar Core diário": {
+      "main": [
+        [
+          {
+            "node": "Expandir projetos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expandir projetos": {
+      "main": [
+        [
+          {
+            "node": "Loop por projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop por projeto": {
+      "main": [
+        [
+          {
+            "node": "Resumo da Maintenance",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar project.json remoto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar project.json remoto": {
+      "main": [
+        [
+          {
+            "node": "Comparar hash funcional",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comparar hash funcional": {
+      "main": [
+        [
+          {
+            "node": "Projeto mudou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Projeto mudou?": {
+      "main": [
+        [
+          {
+            "node": "Preparar publicação técnica",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar projeto sem alteração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar publicação técnica": {
+      "main": [
+        [
+          {
+            "node": "Publicar Maintenance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar Maintenance": {
+      "main": [
+        [
+          {
+            "node": "Registrar projeto atualizado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar projeto atualizado": {
+      "main": [
+        [
+          {
+            "node": "Loop por projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar projeto sem alteração": {
+      "main": [
+        [
+          {
+            "node": "Loop por projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  }
+}

@@ -1,5 +1,7 @@
 # Projetos documentados
 
+Cada subdiretório representa um projeto n8n agrupado pela tag `project:<slug>`. O Bootstrap cria a documentação inicial e a Maintenance atualiza somente os artefatos técnicos.
+
 <!-- n8n-docs:pr-review:start -->
 
 <a id="pr-review"></a>
@@ -15,6 +17,7 @@ Orientar quem completa, revisa e aprova a documentação gerada pelo Bootstrap a
 - `projects/<slug>/README.md`: visão geral e links.
 - `projects/<slug>/docs/TECHNICAL.md`: arquitetura e operação.
 - `projects/<slug>/docs/INTERNAL.md`: dados humanos e organizacionais.
+- `projects/<slug>/docs/DECISIONS_AND_LEARNINGS.md`: decisões, aprendizados e ações futuras.
 - `projects/<slug>/docs/workflows/`: detalhes de cada workflow.
 
 ### Dados humanos obrigatórios
@@ -25,6 +28,7 @@ Orientar quem completa, revisa e aprova a documentação gerada pelo Bootstrap a
 - [ ] Cliente, empresa ou confirmação de que não se aplica.
 - [ ] Relacionamento, prazos, frequência de respostas e pedidos fora do escopo.
 - [ ] Escopo, decisões, riscos e pendências internas.
+- [ ] Decisões e aprendizados relevantes foram registrados ou marcados como não aplicáveis.
 
 ### Validação técnica
 
