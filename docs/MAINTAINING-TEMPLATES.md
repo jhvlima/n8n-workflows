@@ -1,20 +1,20 @@
 # Manutenção e reexportação dos templates
 
-Este guia é somente para quem modifica os seis workflows que formam o pipeline de documentação. Ele não é necessário para usar o pipeline normalmente.
+Este guia é somente para quem modifica os sete workflows que formam o pipeline de documentação. Ele não é necessário para usar o pipeline normalmente.
 
 ## Duas sanitizações diferentes
 
 | Processo | Entrada | Saída |
 | --- | --- | --- |
 | Core | Workflows dos projetos documentados | `projects/<slug>/workflows/*.sanitized.json` |
-| Exportador de templates | Core, IA, Publisher, Bootstrap, Formulário e Maintenance da instância mantenedora | `workflows/n8n-2.28.6/*.json` |
+| Exportador de templates | Core, Notion, IA, Publisher, Bootstrap, Formulário e Maintenance da instância mantenedora | `workflows/n8n-2.28.6/*.json` |
 | Gerador de compatibilidade | Templates principais 2.28.6 | `workflows/n8n-1.121.2/*.json` |
 
 O Core protege os snapshots dos projetos. O exportador torna os próprios workflows do pipeline portáteis para que outras pessoas possam importá-los em outra instância.
 
 ## Quando executar
 
-Execute o exportador somente depois de alterar um dos seis workflows na instância n8n e decidir atualizar os templates deste repositório.
+Execute o exportador somente depois de alterar um dos sete workflows na instância n8n e decidir atualizar os templates deste repositório.
 
 Não execute se você apenas:
 
@@ -51,7 +51,7 @@ node scripts/validate-repository.mjs
 git diff --check
 ```
 
-O exportador sobrescreve os seis arquivos em `workflows/n8n-2.28.6/` com o estado atual da instância e regenera a variante `n8n-1.121.2/`. Antes de aceitar as alterações, revise o diff completo.
+O exportador sobrescreve os sete arquivos em `workflows/n8n-2.28.6/` com o estado atual da instância e regenera a variante `n8n-1.121.2/`. Antes de aceitar as alterações, revise o diff completo.
 
 ## Transformações aplicadas
 

@@ -8,6 +8,7 @@ const requiredEnvironment = [
   'N8N_API_URL',
   'N8N_API_KEY',
   'N8N_CORE_WORKFLOW_ID',
+  'N8N_NOTION_CONTEXT_WORKFLOW_ID',
   'N8N_AI_WORKFLOW_ID',
   'N8N_PUBLISHER_WORKFLOW_ID',
   'N8N_BOOTSTRAP_WORKFLOW_ID',
@@ -23,6 +24,7 @@ if (missing.length > 0) {
 const apiUrl = process.env.N8N_API_URL.replace(/\/$/, '');
 const workflowIds = {
   core: process.env.N8N_CORE_WORKFLOW_ID,
+  notionContext: process.env.N8N_NOTION_CONTEXT_WORKFLOW_ID,
   ai: process.env.N8N_AI_WORKFLOW_ID,
   publisher: process.env.N8N_PUBLISHER_WORKFLOW_ID,
   bootstrap: process.env.N8N_BOOTSTRAP_WORKFLOW_ID,
@@ -32,6 +34,7 @@ const workflowIds = {
 
 const outputFiles = {
   core: 'core-documentation.json',
+  notionContext: 'notion-project-context.json',
   ai: 'ai-enrichment.json',
   publisher: 'github-publisher.json',
   bootstrap: 'bootstrap-documentation.json',
@@ -50,10 +53,22 @@ const portableConfigurations = {
       ['documentationMode', "={{ String($json.documentationMode ?? 'core') }}"],
     ],
   },
+  notionContext: {
+    nodeName: 'Configuração Notion',
+    fields: [
+      ['notionRootUrl', "={{ String($json.notionRootUrl ?? '').trim() }}"],
+      ['maxPages', 100, 'number'],
+      ['maxCharsPerPage', 20000, 'number'],
+      ['maxSummaryCharsPerPage', 4000, 'number'],
+      ['maxTotalChars', 40000, 'number'],
+      ['notionApiVersion', '2026-03-11'],
+    ],
+  },
   bootstrap: {
     nodeName: 'Configuração Bootstrap',
     fields: [
       ['projectSlug', "={{ String($json.projectSlug ?? '').trim().toLowerCase() }}"],
+      ['notionRootUrl', "={{ String($json.notionRootUrl ?? '').trim() }}"],
       ['aiMode', 'bootstrap'],
       ['owner', "={{ String($json.owner ?? 'YOUR_GITHUB_USER') }}"],
       ['repository', "={{ String($json.repository ?? 'YOUR_REPOSITORY') }}"],
@@ -147,6 +162,8 @@ function sanitizeNode(node, workflowKind) {
   if (clean.type === 'n8n-nodes-base.executeWorkflow') {
     const target = /publicar/i.test(clean.name)
         ? 'publisher'
+        : /notion|reuniões/i.test(clean.name)
+          ? 'notionContext'
         : /ia|enriquecimento/i.test(clean.name)
           ? 'ai'
           : /bootstrap/i.test(clean.name)
@@ -156,6 +173,10 @@ function sanitizeNode(node, workflowKind) {
       core: {
         placeholder: 'SELECT_CORE_WORKFLOW_AFTER_IMPORT',
         name: 'Core - Documentação n8n (Dry Run)',
+      },
+      notionContext: {
+        placeholder: 'SELECT_NOTION_CONTEXT_WORKFLOW_AFTER_IMPORT',
+        name: 'Notion - Contexto de Reuniões do Projeto',
       },
       ai: {
         placeholder: 'SELECT_AI_WORKFLOW_AFTER_IMPORT',

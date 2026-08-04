@@ -237,12 +237,26 @@
       }
     },
     {
+      "id": "a137676a-d962-4594-bb34-a267155e296d",
+      "name": "Preservar fontes de contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        16
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const comparison=$('Comparar hash funcional').item.json;\nconst remote=comparison.maintenanceContext?.remoteManifest??{};\nconst filePath='projects/'+$json.projectSlug+'/project.json';\nconst files={...($json.files??{})};\nlet manifest={};\ntry{manifest=JSON.parse(files[filePath]??'{}');}\ncatch{throw new Error('project.json preparado pela Maintenance é inválido.');}\nmanifest.contextSources=remote.contextSources??{};\nfiles[filePath]=JSON.stringify(manifest,null,2);\nreturn {json:{...$json,files}};"
+      }
+    },
+    {
       "id": "a3b89db1-44ac-4844-bbfe-871590b2052c",
       "name": "Publicar Maintenance",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.1,
       "position": [
-        2640,
+        2880,
         16
       ],
       "parameters": {
@@ -263,7 +277,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2880,
+        3120,
         16
       ],
       "parameters": {
@@ -308,7 +322,7 @@
         -480
       ],
       "parameters": {
-        "content": "## Maintenance — fechamento diário\n\n- Agenda: 23:50, America/Sao_Paulo.\n- Agrupa projetos por tags do Core.\n- Compara functionalHash com project.json remoto.\n- Sem mudança: não publica.\n- Com mudança: publica somente workflows/ e project.json.\n- Preserva no manifesto o layout e a versão do contrato de documentação.\n- Nunca chama IA e nunca sobrescreve README.md ou docs/.\n- Projetos sem Bootstrap são reportados e ignorados.",
+        "content": "## Maintenance — fechamento diário\n\n- Agenda: 23:50, America/Sao_Paulo.\n- Agrupa projetos por tags do Core.\n- Compara functionalHash com project.json remoto.\n- Sem mudança: não publica.\n- Com mudança: publica somente workflows/ e project.json.\n- Preserva layout, versão e contextSources do manifesto remoto.\n- Nunca relê o Notion, chama IA ou sobrescreve README.md e docs/.\n- Projetos sem Bootstrap são reportados e ignorados.\n\n**Atualizações:** [github.com/jhvlima/n8n-workflows](https://github.com/jhvlima/n8n-workflows)",
         "height": 400,
         "width": 720,
         "color": 7
@@ -446,6 +460,17 @@
       ]
     },
     "Preparar publicação técnica": {
+      "main": [
+        [
+          {
+            "node": "Preservar fontes de contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preservar fontes de contexto": {
       "main": [
         [
           {

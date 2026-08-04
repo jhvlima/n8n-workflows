@@ -25,6 +25,12 @@
               "type": "string"
             },
             {
+              "id": "55a2a782-6e4a-46d1-8cf0-e712577a9bde",
+              "name": "notionRootUrl",
+              "value": "={{ String($json.notionRootUrl ?? '').trim() }}",
+              "type": "string"
+            },
+            {
               "id": "8d37b1f8-a99a-4304-b20e-267a1b2808b4",
               "name": "aiMode",
               "value": "bootstrap",
@@ -146,7 +152,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const cfg=$('Configuração Bootstrap').first().json;\n  const projects=$input.first().json.payloads??[];\n  const project=projects.find(item=>item.projectSlug===cfg.projectSlug);\n  if(!project) throw new Error('Core não retornou o projeto '+cfg.projectSlug);\n  const encodePath=value=>String(value).split('/').map(encodeURIComponent).join('/');\n  const repositoryUrl='https://github.com/'+encodeURIComponent(cfg.owner)+'/'+encodeURIComponent(cfg.repository);\n  const documentationPath='projects/'+project.projectSlug;\n  const readmeUrl=repositoryUrl+'/blob/'+encodePath(cfg.branch)+'/'+encodePath(documentationPath)+'/README.md';\n  const repositoryContext={\n    owner:cfg.owner,\n    repository:cfg.repository,\n    branch:cfg.branch,\n    repositoryUrl,\n    readmeUrl,\n    url:readmeUrl,\n    documentationPath\n  };\n  return [{json:{...project,aiMode:cfg.aiMode,documentationLayout:cfg.documentationLayout,documentationMode:'bootstrap',repositoryContext}}];"
+        "jsCode": "const cfg=$('Configuração Bootstrap').first().json;\n  const projects=$input.first().json.payloads??[];\n  const project=projects.find(item=>item.projectSlug===cfg.projectSlug);\n  if(!project) throw new Error('Core não retornou o projeto '+cfg.projectSlug);\n  const encodePath=value=>String(value).split('/').map(encodeURIComponent).join('/');\n  const repositoryUrl='https://github.com/'+encodeURIComponent(cfg.owner)+'/'+encodeURIComponent(cfg.repository);\n  const documentationPath='projects/'+project.projectSlug;\n  const readmeUrl=repositoryUrl+'/blob/'+encodePath(cfg.branch)+'/'+encodePath(documentationPath)+'/README.md';\n  const repositoryContext={\n    owner:cfg.owner,\n    repository:cfg.repository,\n    branch:cfg.branch,\n    repositoryUrl,\n    readmeUrl,\n    url:readmeUrl,\n    documentationPath\n  };\n  return [{json:{...project,notionRootUrl:cfg.notionRootUrl,aiMode:cfg.aiMode,documentationLayout:cfg.documentationLayout,documentationMode:'bootstrap',repositoryContext}}];"
       },
       "id": "373c966a-4f36-4ce4-b3e3-5dc1860ee9ce",
       "name": "Selecionar projeto",
@@ -298,6 +304,40 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
+          "value": "SELECT_NOTION_CONTEXT_WORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Notion - Contexto de Reuniões do Projeto"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "9fc15c0c-5af4-4d95-9ae8-9857aef69370",
+      "name": "Coletar reuniões do Notion",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        3120,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const project=$('Anexar documentação anterior').first().json;\nconst notionContext=$input.first().json?.notionContext??{\n  enabled:false,status:'not-configured',collectedAt:null,pagesProcessed:0,pagesDiscovered:0,\n  contentHash:null,truncated:false,contentPublished:false,pages:[]\n};\nreturn [{json:{...project,notionContext}}];"
+      },
+      "id": "f89d2894-b42b-45bd-826f-58cbd0ed0140",
+      "name": "Anexar reuniões sanitizadas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
           "value": "SELECT_AI_WORKFLOW_AFTER_IMPORT",
           "mode": "list",
           "cachedResultName": "AI - Enriquecimento da Documentação n8n"
@@ -311,20 +351,20 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.1,
       "position": [
-        3120,
+        3600,
         80
       ]
     },
     {
       "parameters": {
-        "jsCode": "const cfg=$('Configuração Bootstrap').first().json;\n  const input=$input.first().json;\n  const project=Array.isArray(input.payloads)?input.payloads[0]:input;\n  if(!project?.projectSlug) throw new Error('Projeto ausente na preparação do Bootstrap.');\n  const manifest=JSON.parse(project.technicalFiles?.['project.json']??'{}');\n  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'})\n    .format(new Date()).replace(/-/g,'.');\n  const updatedManifest={\n    ...manifest,\n    bootstrapCompleted:true,\n    sourceOfTruth:'github',\n    aiMode:cfg.aiMode,\n    documentationLayout:'separated',\n    documentationSchemaVersion:2,\n    currentVersion:today+'.1',\n    bootstrapAt:new Date().toISOString(),\n    reviewRequired:true\n  };\n  const technicalFiles={...(project.technicalFiles??{})};\n  delete technicalFiles['project.json'];\n  const relativeFiles={\n    ...technicalFiles,\n    ...(project.humanFiles??{}),\n    'project.json':JSON.stringify(updatedManifest,null,2)\n  };\n  const projectFiles=Object.fromEntries(Object.entries(relativeFiles).map(([file,content])=>[\n    'projects/'+project.projectSlug+'/'+file,content\n  ]));\n  const repositoryFiles=Object.fromEntries(Object.entries(project.repositoryFiles??{})\n    .filter(([file,content])=>file==='projects/README.md'&&typeof content==='string'));\n  const files={...projectFiles,...repositoryFiles};\n  const deletePaths=(project.repositoryDeletePaths??[])\n    .map(String).filter(file=>file==='PR_REVIEW.md');\n  return [{json:{\n    owner:cfg.owner,\n    repository:cfg.repository,\n    branch:cfg.branch,\n    projectSlug:project.projectSlug,\n    files,\n    deletePaths,\n    commitMessage:'docs('+project.projectSlug+'): bootstrap separated documentation'\n  }}];"
+        "jsCode": "const cfg=$('Configuração Bootstrap').first().json;\n  const input=$input.first().json;\n  const project=Array.isArray(input.payloads)?input.payloads[0]:input;\n  if(!project?.projectSlug) throw new Error('Projeto ausente na preparação do Bootstrap.');\n  const manifest=JSON.parse(project.technicalFiles?.['project.json']??'{}');\n  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'})\n    .format(new Date()).replace(/-/g,'.');\n  const updatedManifest={\n    ...manifest,\n    bootstrapCompleted:true,\n    sourceOfTruth:'github',\n    aiMode:cfg.aiMode,\n    documentationLayout:'separated',\n    documentationSchemaVersion:2,\n    contextSources:project.contextSources??{notion:{enabled:false,status:'not-configured',contentPublished:false}},\n    currentVersion:today+'.1',\n    bootstrapAt:new Date().toISOString(),\n    reviewRequired:true\n  };\n  const technicalFiles={...(project.technicalFiles??{})};\n  delete technicalFiles['project.json'];\n  const relativeFiles={\n    ...technicalFiles,\n    ...(project.humanFiles??{}),\n    'project.json':JSON.stringify(updatedManifest,null,2)\n  };\n  const projectFiles=Object.fromEntries(Object.entries(relativeFiles).map(([file,content])=>[\n    'projects/'+project.projectSlug+'/'+file,content\n  ]));\n  const repositoryFiles=Object.fromEntries(Object.entries(project.repositoryFiles??{})\n    .filter(([file,content])=>file==='projects/README.md'&&typeof content==='string'));\n  const files={...projectFiles,...repositoryFiles};\n  const deletePaths=(project.repositoryDeletePaths??[])\n    .map(String).filter(file=>file==='PR_REVIEW.md');\n  return [{json:{\n    owner:cfg.owner,\n    repository:cfg.repository,\n    branch:cfg.branch,\n    projectSlug:project.projectSlug,\n    files,\n    deletePaths,\n    commitMessage:'docs('+project.projectSlug+'): bootstrap separated documentation'\n  }}];"
       },
       "id": "b09ffd55-1c18-496f-b98d-19b4a500a772",
       "name": "Preparar publicação inicial",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3456,
+        3936,
         80
       ]
     },
@@ -345,7 +385,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.1,
       "position": [
-        3696,
+        4176,
         80
       ]
     },
@@ -358,13 +398,13 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3936,
+        4416,
         80
       ]
     },
     {
       "parameters": {
-        "content": "## Bootstrap — pacote separado e publicação atômica\n\n- Recebe projectSlug de outro workflow.\n- Gera um README.md operacional com Mermaid, docs/TECHNICAL.md, docs/INTERNAL.md e o modelo docs/DECISIONS_AND_LEARNINGS.md.\n- Cria projects/README.md quando ausente ou vazio; se houver conteúdo, preserva-o e atualiza somente a seção #pr-review.\n- Remove PR_REVIEW.md legado no mesmo commit quando ele existir.\n- Bloqueia reexecução quando project.json existe e forceBootstrap não foi autorizado.\n- Chama o Core determinístico e depois a IA.\n- No rebootstrap, lê e sanitiza os documentos usados pela IA e preserva integralmente o registro de decisões e aprendizados.\n- Publica todo o pacote com no máximo um commit através do Publisher atômico.",
+        "content": "## Bootstrap — pacote separado e publicação atômica\n\n- Recebe projectSlug e, opcionalmente, notionRootUrl de outro workflow.\n- Chama o Core, coleta reuniões sanitizadas do Notion e executa a IA.\n- As reuniões enriquecem principalmente docs/INTERNAL.md; o snapshot dos workflows continua sendo a verdade técnica.\n- Gera README.md, docs/TECHNICAL.md, docs/INTERNAL.md e docs/DECISIONS_AND_LEARNINGS.md.\n- Nunca publica as transcrições, URLs ou IDs do Notion; project.json recebe somente status, contagem, data e hash.\n- No rebootstrap, preserva os documentos anteriores e o registro de decisões e aprendizados.\n- Publica todo o pacote com no máximo um commit através do Publisher atômico.\n\n**Atualizações:** [github.com/jhvlima/n8n-workflows](https://github.com/jhvlima/n8n-workflows)",
         "height": 360,
         "width": 680,
         "color": 3
@@ -380,7 +420,7 @@
     },
     {
       "parameters": {
-        "content": "## Inputs e credenciais — Bootstrap\n\n### Edit Fields Configuração Bootstrap\n- projectSlug: slug vindo do formulário.\n- documentationLayout: separated.\n- owner, repository, branch: destino GitHub.\n- forceBootstrap: false para projeto novo; true somente no rebootstrap autorizado.\n- aiMode e documentationMode: bootstrap.\n\n### Credencial e dependências\n- Use a mesma credencial GitHub API em todas as consultas.\n- As consultas incluem documentos do projeto, DECISIONS_AND_LEARNINGS.md, projects/README.md e PR_REVIEW.md legado.\n- Selecione Core, IA e Publisher nos nodes Execute Workflow.\n- A escrita GitHub fica no Publisher atômico.\n\n### Migração\nprojects/README.md é criado quando ausente ou vazio; quando preenchido, recebe uma seção entre marcadores sem perder o restante. DECISIONS_AND_LEARNINGS.md também é criado quando ausente ou vazio e preservado integralmente quando já possui registros. Se PR_REVIEW.md existir, sua remoção entra no mesmo commit.\n\nGuia completo: docs/inputs/bootstrap.md",
+        "content": "## Inputs e credenciais — Bootstrap\n\n### Edit Fields Configuração Bootstrap\n- projectSlug: slug vindo do formulário.\n- notionRootUrl: URL ou page ID opcional da página raiz do projeto no Notion.\n- documentationLayout: separated.\n- owner, repository, branch: destino GitHub.\n- forceBootstrap: false para projeto novo; true somente no rebootstrap autorizado.\n- aiMode e documentationMode: bootstrap.\n\n### Credenciais e dependências\n- Use a mesma credencial GitHub API em todas as consultas.\n- Selecione Core, Notion - Contexto de Reuniões do Projeto, IA e Publisher nos nodes Execute Workflow.\n- A credencial Notion API fica somente no coletor; a escrita GitHub fica no Publisher.\n\n### Privacidade\nO conteúdo das reuniões existe somente durante a execução. A IA o usa principalmente em docs/INTERNAL.md, e project.json recebe somente metadados sem URL, ID ou transcrição.\n\nGuia completo: docs/inputs/bootstrap.md",
         "height": 680,
         "width": 880,
         "color": 3
@@ -569,6 +609,28 @@
       ]
     },
     "Anexar documentação anterior": {
+      "main": [
+        [
+          {
+            "node": "Coletar reuniões do Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Coletar reuniões do Notion": {
+      "main": [
+        [
+          {
+            "node": "Anexar reuniões sanitizadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anexar reuniões sanitizadas": {
       "main": [
         [
           {

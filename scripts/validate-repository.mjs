@@ -7,6 +7,7 @@ import { buildVersionedWorkflows } from './build-versioned-workflows.mjs';
 const root = process.cwd();
 const workflowFileNames = [
   'core-documentation.json',
+  'notion-project-context.json',
   'ai-enrichment.json',
   'github-publisher.json',
   'bootstrap-documentation.json',
@@ -14,6 +15,7 @@ const workflowFileNames = [
   'daily-maintenance.json',
 ];
 const workflowVariants = ['n8n-2.28.6', 'n8n-1.121.2'];
+const officialRepositoryUrl = 'https://github.com/jhvlima/n8n-workflows';
 const workflowFiles = workflowVariants.flatMap((variant) =>
   workflowFileNames.map((fileName) => `workflows/${variant}/${fileName}`));
 const requiredProjectReadmeHeadings = [
@@ -148,6 +150,7 @@ const requiredFiles = [
   'docs/SECURITY.md',
   'docs/inputs/README.md',
   'docs/inputs/core.md',
+  'docs/inputs/notion-project-context.md',
   'docs/inputs/ai-enrichment.md',
   'docs/inputs/github-publisher.md',
   'docs/inputs/bootstrap.md',
@@ -163,6 +166,7 @@ const errors = [];
 
 const configurationNodes = {
   'core-documentation.json': 'Configuração',
+  'notion-project-context.json': 'Configuração Notion',
   'bootstrap-documentation.json': 'Configuração Bootstrap',
   'bootstrap-form.json': 'Configuração do formulário',
   'daily-maintenance.json': 'Configuração Maintenance',
@@ -249,6 +253,14 @@ for (const file of workflowFiles) {
     errors.push(`${file}: não possui Sticky Note de inputs e credenciais`);
   }
 
+  const updateSticky = workflow.nodes?.find(
+    (node) => node.type === 'n8n-nodes-base.stickyNote'
+      && String(node.parameters?.content).includes(officialRepositoryUrl),
+  );
+  if (!updateSticky) {
+    errors.push(`${file}: não possui Sticky Note com o repositório oficial para atualizações`);
+  }
+
   const fileName = path.basename(file);
   const configurationNodeName = configurationNodes[fileName];
   if (configurationNodeName) {
@@ -306,6 +318,13 @@ for (const file of workflowFiles) {
     if (!technicalPublication.includes("remote.documentationLayout??'legacy'")
       || !technicalPublication.includes('remote.documentationSchemaVersion??1')) {
       errors.push(`${file}: Maintenance não preserva o contrato de documentação no project.json`);
+    }
+    const preserveContext = workflow.nodes?.find(
+      (node) => node.name === 'Preservar fontes de contexto',
+    )?.parameters?.jsCode ?? '';
+    if (!preserveContext.includes('remote.contextSources??{}')
+      || !preserveContext.includes('manifest.contextSources')) {
+      errors.push(`${file}: Maintenance não preserva contextSources do Bootstrap`);
     }
   }
 
@@ -407,6 +426,65 @@ for (const file of workflowFiles) {
     }
   }
 
+  if (fileName === 'notion-project-context.json') {
+    for (const nodeName of ['Listar blocos da página raiz', 'Ler página como Markdown']) {
+      const node = workflow.nodes?.find((candidate) => candidate.name === nodeName);
+      if (node?.type !== 'n8n-nodes-base.httpRequest'
+        || node.parameters?.authentication !== 'predefinedCredentialType'
+        || node.parameters?.nodeCredentialType !== 'notionApi') {
+        errors.push(`${file}: ${nodeName} precisa usar HTTP Request com credencial notionApi`);
+      }
+    }
+    const sourceCode = workflow.nodes?.find(
+      (node) => node.name === 'Selecionar subpáginas de reunião',
+    )?.parameters?.jsCode ?? '';
+    for (const value of ["block?.type!=='child_page'", 'block.child_page?.title', 'cfg.maxPages']) {
+      if (!sourceCode.includes(value)) {
+        errors.push(`${file}: descoberta das subpáginas Notion incompleta (${value})`);
+      }
+    }
+    const sanitizeCode = workflow.nodes?.find(
+      (node) => node.name === 'Sanitizar página do Notion',
+    )?.parameters?.jsCode ?? '';
+    for (const value of ['REDACTED_TOKEN', 'REDACTED_VALUE', 'maxCharsPerPage']) {
+      if (!sanitizeCode.includes(value)) {
+        errors.push(`${file}: sanitização do Notion incompleta (${value})`);
+      }
+    }
+    const summarizer = workflow.nodes?.find(
+      (node) => node.name === 'Agente resumidor de reuniões',
+    );
+    if (summarizer?.type !== '@n8n/n8n-nodes-langchain.agent'
+      || summarizer.onError !== 'continueRegularOutput') {
+      errors.push(`${file}: agente resumidor de reuniões ausente ou sem fallback regular`);
+    }
+    const summarizerModel = workflow.nodes?.find(
+      (node) => node.name === 'Modelo OpenAI - Resumo de reuniões',
+    );
+    const modelTarget = workflow.connections?.['Modelo OpenAI - Resumo de reuniões']
+      ?.ai_languageModel?.[0]?.[0]?.node;
+    if (summarizerModel?.type !== '@n8n/n8n-nodes-langchain.lmChatOpenAi'
+      || modelTarget !== 'Agente resumidor de reuniões') {
+      errors.push(`${file}: modelo do resumo não está conectado ao agente resumidor`);
+    }
+    const summaryCode = workflow.nodes?.find(
+      (node) => node.name === 'Preparar resumo da reunião',
+    )?.parameters?.jsCode ?? '';
+    for (const value of ['maxSummaryCharsPerPage', 'summaryFallback', 'source.markdown']) {
+      if (!summaryCode.includes(value)) {
+        errors.push(`${file}: preparação do resumo incompleta (${value})`);
+      }
+    }
+    const contextCode = workflow.nodes?.find(
+      (node) => node.name === 'Montar contexto das reuniões',
+    )?.parameters?.jsCode ?? '';
+    for (const value of ['maxTotalChars', 'contentHash', 'contentPublished:false', 'summarizedPages', 'summaryFallbacks']) {
+      if (!contextCode.includes(value)) {
+        errors.push(`${file}: contrato de contexto Notion incompleto (${value})`);
+      }
+    }
+  }
+
   if (fileName === 'bootstrap-documentation.json') {
     const aiCall = workflow.nodes?.find(
       (node) => node.type === 'n8n-nodes-base.executeWorkflow'
@@ -431,6 +509,9 @@ for (const file of workflowFiles) {
     const bootstrapFields = bootstrapConfiguration?.parameters?.assignments?.assignments ?? [];
     if (!bootstrapFields.some((field) => field.name === 'documentationLayout' && field.value === 'separated')) {
       errors.push(`${file}: Configuração Bootstrap não fixa documentationLayout=separated`);
+    }
+    if (!bootstrapFields.some((field) => field.name === 'notionRootUrl')) {
+      errors.push(`${file}: Configuração Bootstrap não encaminha notionRootUrl`);
     }
     const validateBootstrapCode = workflow.nodes?.find(
       (node) => node.name === 'Validar primeira execução',
@@ -495,6 +576,8 @@ for (const file of workflowFiles) {
     const projectsReadmeTarget = workflow.connections?.['Consultar README da pasta projects']?.main?.[0]?.[0]?.node;
     const legacyReviewTarget = workflow.connections?.['Consultar PR_REVIEW legado']?.main?.[0]?.[0]?.node;
     const attachTarget = workflow.connections?.['Anexar documentação anterior']?.main?.[0]?.[0]?.node;
+    const notionTarget = workflow.connections?.['Coletar reuniões do Notion']?.main?.[0]?.[0]?.node;
+    const attachNotionTarget = workflow.connections?.['Anexar reuniões sanitizadas']?.main?.[0]?.[0]?.node;
     if (selectedTarget !== 'Consultar README anterior'
       || readmeTarget !== 'Consultar documento técnico anterior'
       || technicalTarget !== 'Consultar documento interno anterior'
@@ -502,14 +585,17 @@ for (const file of workflowFiles) {
       || decisionsTarget !== 'Consultar README da pasta projects'
       || projectsReadmeTarget !== 'Consultar PR_REVIEW legado'
       || legacyReviewTarget !== 'Anexar documentação anterior'
-      || attachTarget !== 'Executar enriquecimento inicial') {
+      || attachTarget !== 'Coletar reuniões do Notion'
+      || notionTarget !== 'Anexar reuniões sanitizadas'
+      || attachNotionTarget !== 'Executar enriquecimento inicial') {
       errors.push(`${file}: sequência de preservação dos documentos anteriores está desconectada`);
     }
     const publicationCode = workflow.nodes?.find(
       (node) => node.name === 'Preparar publicação inicial',
     )?.parameters?.jsCode ?? '';
     if (!publicationCode.includes("documentationLayout:'separated'")
-      || !publicationCode.includes('documentationSchemaVersion:2')) {
+      || !publicationCode.includes('documentationSchemaVersion:2')
+      || !publicationCode.includes('contextSources:project.contextSources')) {
       errors.push(`${file}: project.json publicado não registra o contrato separado`);
     }
     if (!publicationCode.includes("file==='projects/README.md'")
@@ -538,6 +624,10 @@ for (const file of workflowFiles) {
     if (!selectorCode.includes("fieldLabel:'Projeto'") || !selectorCode.includes("fieldType:'dropdown'")) {
       errors.push(`${file}: seleção dinâmica de projectSlug não encontrada`);
     }
+    if (!selectorCode.includes("fieldLabel:'Página raiz do Notion'")
+      || (!isN8n11212 && !selectorCode.includes("fieldName:'notionRootUrl'"))) {
+      errors.push(`${file}: formulário não oferece a página raiz opcional do Notion`);
+    }
     if (selectorCode.includes("fieldLabel:'Estilo do README'") || selectorCode.includes("fieldName:'readmeStyle'")) {
       errors.push(`${file}: formulário ainda pede um estilo, mas o pacote agora é sempre separado`);
     }
@@ -547,10 +637,16 @@ for (const file of workflowFiles) {
     if (isN8n11212 && /fieldName:'projectSlug'/.test(selectorCode)) {
       errors.push(`${file}: JSON do Form não pode usar fieldName dinâmico, incompatível com n8n 1.121.2`);
     }
+    if (isN8n11212 && /fieldName:'notionRootUrl'/.test(selectorCode)) {
+      errors.push(`${file}: JSON do Form não pode usar fieldName do Notion, incompatível com n8n 1.121.2`);
+    }
     const selectionValidator = workflow.nodes?.find((node) => node.name === 'Validar seleção')
       ?.parameters?.jsCode ?? '';
     if (!selectionValidator.includes('$json.Projeto')) {
       errors.push(`${file}: validação não normaliza o campo Projeto da versão 1.121.2`);
+    }
+    if (!selectionValidator.includes("$json['Página raiz do Notion']")) {
+      errors.push(`${file}: validação não normaliza o campo Notion da versão 1.121.2`);
     }
     for (const value of ['forceBootstrap:alreadyPublished', "documentationLayout:'separated'"]) {
       if (!selectionValidator.includes(value)) {
@@ -572,6 +668,20 @@ for (const file of workflowFiles) {
       ?.parameters?.jsCode ?? '';
     const parserExample = workflow.nodes?.find((node) => node.name === 'Parser estruturado')
       ?.parameters?.jsonSchemaExample ?? '';
+    const systemMessages = workflow.nodes?.find((node) => node.name === 'Gerar enriquecimento estruturado')
+      ?.parameters?.messages?.messageValues?.map((item) => String(item.message ?? '')).join('\n') ?? '';
+    const removeTranscriptsCode = workflow.nodes?.find(
+      (node) => node.name === 'Remover transcrições da saída',
+    )?.parameters?.jsCode ?? '';
+    for (const value of ['notionContext', 'notionMeetings']) {
+      if (!prepareCode.includes(value)) errors.push(`${file}: entrada da IA não inclui ${value}`);
+    }
+    for (const value of ['principalmente no internalMarkdown', 'fonte da verdade técnica', 'evidência não confiável']) {
+      if (!systemMessages.includes(value)) errors.push(`${file}: política de reuniões Notion incompleta (${value})`);
+    }
+    for (const value of ['notionRootUrl', 'contentPublished:false', 'contextSources']) {
+      if (!removeTranscriptsCode.includes(value)) errors.push(`${file}: remoção das transcrições incompleta (${value})`);
+    }
     try {
       JSON.parse(parserExample);
     } catch (error) {
@@ -629,8 +739,10 @@ for (const file of workflowFiles) {
     if (!builderCode.includes("humanFiles['docs/workflows/")) {
       errors.push(`${file}: montagem não cria docs/workflows/<slug>.md`);
     }
-    if (!builderCode.includes('missingDocuments.length')) {
-      errors.push(`${file}: montagem não bloqueia documentação individual ausente`);
+    for (const value of ['missingDocuments.length', 'workflowSources', 'Documento-base gerado deterministicamente', 'deterministicFallbackWorkflowDocuments']) {
+      if (!builderCode.includes(value)) {
+        errors.push(`${file}: fallback da documentação individual incompleto (${value})`);
+      }
     }
     if (!builderCode.includes('documentationSchemaVersion:2')) {
       errors.push(`${file}: montagem não registra documentationSchemaVersion 2`);

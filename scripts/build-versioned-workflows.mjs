@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const workflowFiles = [
   'core-documentation.json',
+  'notion-project-context.json',
   'ai-enrichment.json',
   'github-publisher.json',
   'bootstrap-documentation.json',
@@ -15,6 +16,7 @@ const workflowFiles = [
 
 const versionIds = {
   'core-documentation.json': '11212000-0000-4000-8000-000000000001',
+  'notion-project-context.json': '11212000-0000-4000-8000-000000000007',
   'ai-enrichment.json': '11212000-0000-4000-8000-000000000002',
   'github-publisher.json': '11212000-0000-4000-8000-000000000003',
   'bootstrap-documentation.json': '11212000-0000-4000-8000-000000000004',
@@ -50,7 +52,7 @@ function makeN8n11212Compatible(workflow, fileName) {
       && typeof clean.parameters?.jsCode === 'string'
     ) {
       clean.parameters.jsCode = clean.parameters.jsCode
-        .replace(/\n\s+fieldName:'(?:projectSlug|readmeStyle)',/g, '');
+        .replace(/\n\s+fieldName:'(?:projectSlug|notionRootUrl|readmeStyle)',/g, '');
     }
 
     if (clean.type === '@n8n/n8n-nodes-langchain.lmChatGoogleGemini') {

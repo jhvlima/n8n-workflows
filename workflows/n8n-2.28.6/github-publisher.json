@@ -311,7 +311,7 @@
     },
     {
       "parameters": {
-        "content": "## Publisher atômico\n\n- Recebe exatamente uma publicação por execução.\n- Valida todos os caminhos antes de chamar o GitHub.\n- Permite escrever somente projects/**, incluindo projects/README.md.\n- Permite remover somente o PR_REVIEW.md legado.\n- Cria uma tree Git sobre a tree atual da branch.\n- Se a tree for idêntica, encerra sem criar commit.\n- Se houver mudança, cria um único commit com escritas e remoção.\n- Move a referência somente por fast-forward (force=false).\n- Uma falha antes da atualização não publica estado parcial.",
+        "content": "## Publisher atômico\n\n- Recebe exatamente uma publicação por execução.\n- Valida todos os caminhos antes de chamar o GitHub.\n- Permite escrever somente projects/**, incluindo projects/README.md.\n- Permite remover somente o PR_REVIEW.md legado.\n- Cria uma tree Git sobre a tree atual da branch.\n- Se a tree for idêntica, encerra sem criar commit.\n- Se houver mudança, cria um único commit com escritas e remoção.\n- Move a referência somente por fast-forward (force=false).\n- Uma falha antes da atualização não publica estado parcial.\n\n**Atualizações:** [github.com/jhvlima/n8n-workflows](https://github.com/jhvlima/n8n-workflows)",
         "height": 440,
         "width": 760,
         "color": 4
