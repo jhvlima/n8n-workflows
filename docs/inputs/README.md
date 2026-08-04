@@ -9,6 +9,7 @@ Cada workflow possui um guia próprio com os campos livres, os valores controlad
 | Workflow | Guia | Entrada |
 | --- | --- | --- |
 | Core | [core.md](core.md) | Manual ou subworkflow |
+| Notion | [notion-project-context.md](notion-project-context.md) | Somente Bootstrap, com URL opcional |
 | IA | [ai-enrichment.md](ai-enrichment.md) | Somente payload do Core/Bootstrap |
 | Publisher | [github-publisher.md](github-publisher.md) | Somente payload de outro workflow |
 | Bootstrap | [bootstrap.md](bootstrap.md) | Somente Formulário/subworkflow |

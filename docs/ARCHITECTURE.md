@@ -7,8 +7,12 @@ flowchart TD
     T[Tags docs-internal e project:slug] --> C[Core N:1]
     C --> F[Formulário autenticado]
     F --> B[Bootstrap subworkflow]
+    B --> Q{Notion informado?}
+    Q -->|sim| N[Coletor Notion]
+    N --> R[Agente resumidor por reunião]
+    Q -->|não| A[IA obrigatória]
+    R --> A
     C --> M[Maintenance diária]
-    B --> A[IA obrigatória]
     M --> D{Hash mudou?}
     D -->|não| S[Skip]
     D -->|sim| P
@@ -44,7 +48,7 @@ Uma tool compartilhada é documentada uma vez e pode aparecer como dependência 
 
 ## Contrato da IA
 
-A IA recebe o snapshot sanitizado do Core e, em um rebootstrap, os documentos humanos anteriores sanitizados pelo Bootstrap. O layout é fixo:
+A IA recebe o snapshot sanitizado do Core, os documentos humanos anteriores sanitizados no rebootstrap e, opcionalmente, os resumos sanitizados das reuniões do Notion. Cada reunião é resumida separadamente antes da IA principal para controlar o tamanho do contexto. O layout é fixo:
 
 ```text
 projects/
@@ -75,6 +79,8 @@ Cada documento individual de workflow contém, nesta ordem:
 
 Quando uma informação não estiver comprovada, a IA escreve `Precisa de confirmação`; quando não se aplicar, utiliza `Não se aplica`. Datas de atualização dos workflows não podem ser tratadas como datas do projeto. Cliente, responsáveis e relacionamento não podem ser inferidos. No rebootstrap, fatos do README legado e dos documentos separados são preservados e movidos para o arquivo correto; divergências ficam como pendências.
 
+Os resumos das reuniões do Notion são usados prioritariamente no documento interno. Uma afirmação técnica presente na reunião só entra como fato técnico quando também for comprovada pelo snapshot do workflow; caso contrário, vira ponto de confirmação. Antes de retornar ao Bootstrap, a IA remove os resumos, a URL e os IDs. Somente `contextSources.notion`, incluindo contagem de resumos e fallbacks, segue para `project.json`.
+
 A montagem valida todos os títulos, exige exatamente um documento por `workflowSlug` e rejeita seções vazias, duplicadas ou desconhecidas. O Mermaid é normalizado para `ID["rótulo"]` e incorporado em `docs/TECHNICAL.md`; não existe `architecture.mmd` separado.
 
 A Maintenance não chama a IA. Depois do Bootstrap, esses documentos podem ser revisados pelo time sem risco de sobrescrita diária.
@@ -88,6 +94,8 @@ Ele lê a referência e o commit atual da branch, cria uma nova tree baseada na 
 ## Falhas e idempotência
 
 - Core falhou: nada é publicado.
+- Notion não configurado: o Bootstrap continua normalmente sem reuniões.
+- Notion configurado mas inacessível: o Bootstrap falha antes da IA para não gerar um documento interno fingindo ter lido as reuniões.
 - IA falhou: a publicação do projeto é interrompida.
 - Publisher falhou antes de atualizar a referência: a branch permanece no commit anterior; objetos Git ainda não referenciados podem existir, mas nenhum arquivo parcial fica visível.
 - A branch avançou durante a execução: o update sem force falha e a execução deve ser repetida sobre a nova base.
