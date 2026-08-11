@@ -4,7 +4,7 @@ Pipeline reutilizável para agrupar workflows n8n em projetos, gerar uma documen
 
 O fluxo possui variantes para n8n `2.28.6` e `1.121.2`. Os templates não incluem credenciais e toda saída automática mantém `reviewRequired: true`.
 
-> A pasta [projects](projects/) contém apenas exemplos gerados por esta instalação. O usuário final não precisa clonar nem manter uma cópia local deste repositório. Depois de importar os seis templates no n8n, `owner`, `repository` e `branch` podem apontar para qualquer repositório GitHub ao qual a credencial tenha acesso; toda a leitura e publicação acontece pelas APIs do n8n e do GitHub.
+> A pasta [projects](projects/) contém apenas exemplos gerados por esta instalação. O usuário final não precisa clonar nem manter uma cópia local deste repositório. Depois de importar os sete templates no n8n, `owner`, `repository` e `branch` podem apontar para qualquer repositório GitHub ao qual a credencial tenha acesso; toda a leitura e publicação acontece pelas APIs do n8n e do GitHub.
 
 ## O que é gerado
 
@@ -30,6 +30,8 @@ Depois do Bootstrap, o time pode editar `README.md` e `docs/**`. A Maintenance n
 
 O Bootstrap sempre separa as camadas. O README do projeto traz visão geral, componentes, fluxo principal ou prioritário, entradas e saídas, integrações, operação e arquitetura Mermaid. `TECHNICAL.md` aprofunda arquitetura, dados, erros e limitações. `INTERNAL.md` reúne datas, responsáveis, cliente, relacionamento, escopo, decisões e riscos internos. `DECISIONS_AND_LEARNINGS.md` nasce com um modelo para os consultores e é preservado nos rebootstraps. A seção [Roteiro de revisão](projects/README.md#pr-review) informa o que precisa ser preenchido e validado antes da aprovação.
 
+No formulário, a pessoa pode informar opcionalmente a página raiz do projeto no Notion. O coletor encontra as subpáginas, sanitiza e resume individualmente cada reunião antes de entregar um contexto compacto à IA principal, sobretudo para completar `docs/INTERNAL.md`. As transcrições, URLs e IDs do Notion não são publicados; `project.json` recebe somente status, data, contagens, fallbacks e hash da coleta. O snapshot sanitizado dos workflows continua sendo a fonte da verdade técnica.
+
 Cada workflow também recebe um Markdown individual. O Bootstrap interrompe a publicação se a IA omitir uma seção obrigatória ou qualquer workflow. Em um rebootstrap, o README e os documentos técnico e interno anteriores são lidos, sanitizados e reorganizados sem misturar novamente as duas camadas.
 
 O repositório de destino pode ser este mesmo repositório, um monorepo já existente ou um repositório exclusivo para documentação. Não é necessário executar scripts locais durante o uso normal.
@@ -43,6 +45,7 @@ flowchart TD
     T[docs-internal + project:slug] --> C[Core]
     C --> F[Formulário autenticado]
     F --> B[Bootstrap ou rebootstrap]
+    N[Página raiz e reuniões no Notion] --> B
     B --> A[IA obrigatória]
     A --> P[Publisher]
     P --> G[GitHub]
@@ -55,14 +58,15 @@ flowchart TD
     Q --> P
 ```
 
-### Os seis workflows
+### Os sete workflows
 
 | Workflow | O que faz | Quando é usado | Templates por versão |
 | --- | --- | --- | --- |
 | **Core** | Lê os workflows da instância, agrupa por projeto, sanitiza dados, encontra dependências e calcula o hash funcional | Descoberta, Bootstrap e Maintenance | [2.28.6](workflows/n8n-2.28.6/core-documentation.json) · [1.121.2](workflows/n8n-1.121.2/core-documentation.json) |
+| **Notion** | Coleta as subpáginas, sanitiza e resume cada reunião com um agente dedicado; nunca publica o conteúdo bruto | Opcionalmente no Bootstrap e rebootstrap, principalmente para o documento interno | [2.28.6](workflows/n8n-2.28.6/notion-project-context.json) · [1.121.2](workflows/n8n-1.121.2/notion-project-context.json) |
 | **IA** | Gera conteúdo técnico, interno, arquitetura e documentos individuais; o fluxo monta README e roteiro de PR | Obrigatoriamente no Bootstrap e rebootstrap; nunca na Maintenance | [2.28.6](workflows/n8n-2.28.6/ai-enrichment.json) · [1.121.2](workflows/n8n-1.121.2/ai-enrichment.json) |
 | **Publisher** | Monta uma tree Git e publica todos os arquivos em um único commit atômico, ignorando conteúdo idêntico | Bootstrap e Maintenance | [2.28.6](workflows/n8n-2.28.6/github-publisher.json) · [1.121.2](workflows/n8n-1.121.2/github-publisher.json) |
-| **Bootstrap** | Chama Core, IA e Publisher; preserva os documentos anteriores no rebootstrap e publica o pacote em um único commit | Primeira documentação ou rebootstrap explícito | [2.28.6](workflows/n8n-2.28.6/bootstrap-documentation.json) · [1.121.2](workflows/n8n-1.121.2/bootstrap-documentation.json) |
+| **Bootstrap** | Chama Core, coletor Notion opcional, IA e Publisher; preserva documentos anteriores e publica o pacote em um único commit | Primeira documentação ou rebootstrap explícito | [2.28.6](workflows/n8n-2.28.6/bootstrap-documentation.json) · [1.121.2](workflows/n8n-1.121.2/bootstrap-documentation.json) |
 | **Formulário** | Descobre todos os projetos etiquetados e permite escolher qual documentar ou rebootstrapar | Entrada humana oficial do Bootstrap | [2.28.6](workflows/n8n-2.28.6/bootstrap-form.json) · [1.121.2](workflows/n8n-1.121.2/bootstrap-form.json) |
 | **Maintenance** | Compara o hash atual com o GitHub e publica somente os arquivos técnicos quando houver mudança | Diariamente às 23:50 ou manualmente | [2.28.6](workflows/n8n-2.28.6/daily-maintenance.json) · [1.121.2](workflows/n8n-1.121.2/daily-maintenance.json) |
 
@@ -77,22 +81,27 @@ Escolha exatamente uma pasta:
 | n8n `2.28.6` | [`workflows/n8n-2.28.6/`](workflows/n8n-2.28.6/) | `n8n User Auth` |
 | n8n `1.121.2` | [`workflows/n8n-1.121.2/`](workflows/n8n-1.121.2/) | credencial `HTTP Basic Auth` |
 
-Não misture variantes. Importe os seis arquivos da pasta escolhida nesta ordem:
+Não misture variantes. Importe os sete arquivos da pasta escolhida nesta ordem:
 
 1. Core;
-2. IA;
-3. Publisher;
-4. Bootstrap;
-5. Formulário;
-6. Maintenance.
+2. Notion;
+3. IA;
+4. Publisher;
+5. Bootstrap;
+6. Formulário;
+7. Maintenance.
 
 Você pode colocá-los em um folder como `githubDocs`.
+
+Cada workflow importado possui uma Sticky Note com o link deste repositório para consultar correções e versões mais recentes dos templates.
 
 ### 2. Configure as credenciais
 
 | Workflow | Node | Credencial necessária |
 | --- | --- | --- |
 | Core | `Listar workflows` | API da própria instância n8n, com leitura de workflows e tags |
+| Notion | `Listar blocos da página raiz` e `Ler página como Markdown` | Notion API com leitura da página raiz e das subpáginas |
+| Notion | `Modelo OpenAI - Resumo de reuniões` | OpenAI API para resumir cada reunião antes da documentação principal |
 | IA | `Modelo OpenAI` | OpenAI API |
 | Publisher | Todos os nodes HTTP da Git Data API | GitHub com `Contents: read and write` no repositório |
 | Bootstrap | `Consultar projeto existente` | GitHub com leitura |
@@ -109,6 +118,7 @@ Os templates usam placeholders. Depois da importação, abra os nodes `Execute W
 | --- | --- | --- |
 | IA | `Executar Core determinístico` | Core |
 | Bootstrap | `Executar Core do projeto` | Core |
+| Bootstrap | `Coletar reuniões do Notion` | Notion |
 | Bootstrap | `Executar enriquecimento inicial` | IA |
 | Bootstrap | `Publicar Bootstrap` | Publisher |
 | Formulário | `Descobrir projetos documentáveis` | Core |
@@ -144,7 +154,7 @@ Consulte o [dicionário completo de configurações](docs/CONFIGURATION.md#dicio
 
 ### 5. Ative os workflows
 
-Ative Core, IA, Publisher, Bootstrap e Formulário. Ative a Maintenance depois de validar o primeiro Bootstrap. O Schedule padrão é `50 23 * * *`, no fuso `America/Sao_Paulo`.
+Ative Core, Notion, IA, Publisher, Bootstrap e Formulário. Ative a Maintenance depois de validar o primeiro Bootstrap. O Schedule padrão é `50 23 * * *`, no fuso `America/Sao_Paulo`.
 
 ## Como identificar um projeto
 
@@ -188,8 +198,8 @@ Não execute o Bootstrap com um projeto vazio. Aguarde uma primeira arquitetura 
 3. Marque agentes, tools e subworkflows com as tags de componente quando aplicável.
 4. Conecte as dependências usando `Execute Workflow` ou `Workflow Tool`.
 5. Quando a primeira versão funcional estiver pronta, execute o Core manualmente com `projectSlug=carteira-invest` e confira os componentes encontrados.
-6. Abra `/form/bootstrap-documentacao`, clique em `Carregar projetos` e escolha `carteira-invest`.
-7. O Formulário executará `Bootstrap → Core → IA → Publisher`.
+6. Abra `/form/bootstrap-documentacao`, clique em `Carregar projetos`, escolha `carteira-invest` e informe opcionalmente a página raiz do Notion.
+7. O Formulário executará `Bootstrap → Core → Notion opcional → IA → Publisher`.
 8. Revise no GitHub o `README.md`, a arquitetura, os JSONs sanitizados e o `project.json`.
 9. A partir daí, edite os documentos humanos quando necessário e deixe a Maintenance cuidar dos snapshots técnicos.
 

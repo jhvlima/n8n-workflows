@@ -17,6 +17,7 @@ Os templates não contêm referências de credenciais. Depois da importação:
 - use uma chave n8n dedicada;
 - restrinja o token GitHub ao repositório necessário;
 - mantenha a chave OpenAI no gerenciador de credenciais;
+- mantenha a chave Notion no gerenciador de credenciais e compartilhe somente as páginas necessárias;
 - não grave segredos em tags, Sticky Notes, código ou documentos.
 
 ## Bootstrap
@@ -31,6 +32,12 @@ O formulário de Bootstrap exige autenticação, aceita somente slugs descoberto
 
 `projects/<slug>/docs/INTERNAL.md` pode conter cliente, responsáveis, dinâmica de relacionamento e decisões empresariais. A separação em arquivo próprio não altera a visibilidade do GitHub. Prefira repositório privado; para publicação externa, use outro destino ou remova explicitamente o conteúdo interno.
 
+### Reuniões do Notion
+
+O coletor mascara padrões conhecidos de segredo e limita o volume, mas não garante anonimização completa de dados pessoais ou comerciais. As páginas existem somente no payload transitório enviado ao modelo. Antes da publicação, `notionContext`, `notionRootUrl`, URLs e IDs são removidos; o manifesto guarda apenas metadados e hash.
+
+Uma integração Notion compartilhada com muitas áreas aumenta a superfície de leitura. O fluxo lê somente as subpáginas diretas da raiz informada, sanitiza antes da sumarização e não encaminha a transcrição bruta para o agente principal. Ainda assim, conceda à integração somente o acesso necessário e revise `docs/INTERNAL.md` no PR.
+
 ## Maintenance
 
 A Maintenance compara `functionalHash` antes de chamar o Publisher. Ela publica somente:
@@ -42,7 +49,7 @@ Arquivos humanos ficam fora do payload diário.
 
 ## Prompt injection
 
-Nomes, código, prompts, Sticky Notes e documentos são conteúdo não confiável. Não permita que a IA escolha credenciais, branch, aprovação, merge ou comandos a executar.
+Nomes, código, prompts, Sticky Notes, documentos e transcrições de reuniões são conteúdo não confiável. Não permita que a IA escolha credenciais, branch, aprovação, merge ou comandos a executar.
 
 ## GitHub
 

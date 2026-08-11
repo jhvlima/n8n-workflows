@@ -16,12 +16,15 @@ O fluxo normal do Bootstrap e os passos para projetos novos ou em produção est
 - A referência da branch é atualizada sem force para não sobrescrever alterações concorrentes.
 - A Maintenance nunca inclui `README.md` ou `docs/**` no payload.
 - A Maintenance preserva `documentationLayout` e `documentationSchemaVersion` no `project.json`.
+- A Maintenance preserva `contextSources` sem reler o Notion nem alterar documentos humanos.
 
 ## Recuperação
 
 | Situação | Ação |
 | --- | --- |
 | Core falhou | Corrigir tags/API e repetir; nada foi publicado |
+| Notion não foi informado | Nenhuma ação; o Bootstrap continua sem contexto de reuniões |
+| Notion foi informado e falhou | Corrigir credencial/permissão/link e repetir; a IA e o Publisher ainda não foram executados |
 | IA falhou | Corrigir modelo/credencial e repetir o Bootstrap |
 | Publisher falhou antes de mover a branch | Repetir o Bootstrap; nenhum estado parcial ficou visível |
 | Projeto sem Bootstrap na Maintenance | Executar pelo Formulário; a Maintenance registra `needs-bootstrap` |
@@ -36,6 +39,8 @@ Ao selecionar no formulário um projeto que já está publicado, o payload usa `
 2. execute em uma branch dedicada;
 3. compare todo o diff;
 4. confirme que a execução foi iniciada por um usuário autorizado.
+
+Se uma página do Notion for informada no rebootstrap, as reuniões atuais entram como evidência adicional principalmente para `docs/INTERNAL.md`. Elas não são armazenadas no GitHub e não substituem a precedência técnica do snapshot dos workflows.
 
 Se uma informação anterior conflitar com o snapshot técnico atual, o estado comprovado pelos workflows descreve a situação corrente e a divergência deve permanecer em `Pontos que precisam de confirmação`. Arquivos antigos que deixaram de ser gerados não são removidos pelo Publisher.
 

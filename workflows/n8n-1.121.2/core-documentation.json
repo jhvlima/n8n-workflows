@@ -102,7 +102,7 @@
     },
     {
       "parameters": {
-        "content": "## Core — snapshot técnico determinístico\n\n- Agrupa workflows pelas tags docs-internal + project:<slug>.\n- Ignora workflows apenas com docs-internal e sem tag project:.\n- Bloqueia somente quando há mais de uma tag project: no mesmo workflow.\n- Sanitiza os JSONs antes de qualquer uso pela IA.\n- Calcula o hash funcional do projeto inteiro.\n- Gera somente workflows/*.sanitized.json e project.json.\n- Não gera README, Mermaid ou outros documentos humanos.\n- Não publica e não chama IA.",
+        "content": "## Core — snapshot técnico determinístico\n\n- Agrupa workflows pelas tags docs-internal + project:<slug>.\n- Ignora workflows apenas com docs-internal e sem tag project:.\n- Bloqueia somente quando há mais de uma tag project: no mesmo workflow.\n- Sanitiza os JSONs antes de qualquer uso pela IA.\n- Calcula o hash funcional do projeto inteiro.\n- Gera somente workflows/*.sanitized.json e project.json.\n- Não gera README, Mermaid ou outros documentos humanos.\n- Não publica e não chama IA.\n\n**Atualizações:** [github.com/jhvlima/n8n-workflows](https://github.com/jhvlima/n8n-workflows)",
         "height": 360,
         "width": 640,
         "color": 5

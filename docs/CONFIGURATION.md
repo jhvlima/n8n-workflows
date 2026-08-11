@@ -10,7 +10,8 @@ Para credenciais e exemplos completos de um workflow específico, consulte [Inpu
 | --- | --- |
 | Core — `Configuração` | `requiredTag`, `projectTagPrefix`, `projectSlug`, `aiMode`, `documentationMode` |
 | Formulário — `Configuração do formulário` | `requiredTag`, `projectTagPrefix`, `projectSlug`, `aiMode`, `documentationMode`, `owner`, `repository`, `branch` |
-| Bootstrap — `Configuração Bootstrap` | `projectSlug`, `documentationLayout`, `aiMode`, `owner`, `repository`, `branch`, `forceBootstrap`, `documentationMode` |
+| Notion — `Configuração Notion` | `notionRootUrl`, `maxPages`, `maxCharsPerPage`, `maxSummaryCharsPerPage`, `maxTotalChars`, `notionApiVersion` |
+| Bootstrap — `Configuração Bootstrap` | `projectSlug`, `notionRootUrl`, `documentationLayout`, `aiMode`, `owner`, `repository`, `branch`, `forceBootstrap`, `documentationMode` |
 | Maintenance — `Configuração Maintenance` | `requiredTag`, `projectTagPrefix`, `projectSlug`, `aiMode`, `owner`, `repository`, `branch`, `documentationMode` |
 
 ## Dicionário de campos
@@ -49,6 +50,18 @@ Assim como `requiredTag`, o campo aceita texto livre no Core, mas o Bootstrap fo
 | Maintenance | Vazio processa todos; preenchido faz uma execução direcionada |
 
 O Core normaliza o valor para minúsculas, remove acentos e converte espaços ou símbolos em hífens. Use um slug estável porque ele define `projects/<slug>/` no GitHub.
+
+### `notionRootUrl`
+
+| Propriedade | Valor |
+| --- | --- |
+| Tipo | Texto livre opcional |
+| Padrão | Vazio |
+| Onde aparece | Formulário, Bootstrap e coletor Notion |
+
+Aceita a URL completa `notion.so`/`notion.site` ou um page ID UUID da página raiz do projeto. Vazio mantém o comportamento anterior e gera a documentação sem reuniões. Quando preenchido, o coletor encontra as subpáginas, sanitiza e resume cada reunião com um agente dedicado. Somente os resumos limitados seguem transitoriamente à IA principal, principalmente para `docs/INTERNAL.md`.
+
+O link, os IDs, as transcrições e os resumos não são gravados no GitHub. `project.json` recebe somente `contextSources.notion` com status, data, contagens, número de fallbacks, hash e indicação de truncamento.
 
 ### `aiMode`
 
@@ -127,6 +140,7 @@ Mantenha `false` como padrão administrativo. O formulário envia `true` automat
 | Campo | Opções | Efeito |
 | --- | --- | --- |
 | `projectSlug` | Dropdown controlado | Mostra todos os projetos descobertos pelo Core; projetos já publicados acionam rebootstrap |
+| `notionRootUrl` | Texto livre opcional | Página raiz com reuniões e subpáginas; vazio desativa a coleta |
 | `documentationLayout` | `separated` | Valor técnico fixo; não é apresentado ao usuário |
 
 O formulário não solicita confirmação para carregar a lista. O Form Trigger padrão apresenta apenas o botão `Carregar projetos`; o campo oculto e fixo `loadProjects=true` acompanha essa submissão técnica.

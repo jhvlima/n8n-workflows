@@ -24,7 +24,7 @@ O n8n `1.121.2` não reconhece algumas versões de nodes exportadas pelo n8n 2 e
 
 ## Instalação no n8n 1.121.2
 
-1. Importe somente os seis JSONs de [`workflows/n8n-1.121.2/`](../workflows/n8n-1.121.2/).
+1. Importe somente os sete JSONs de [`workflows/n8n-1.121.2/`](../workflows/n8n-1.121.2/).
 2. No Form Trigger, crie e selecione uma credencial `HTTP Basic Auth`.
 3. Configure as demais credenciais normalmente.
 4. Selecione novamente os subworkflows nos nodes `Execute Workflow`.
@@ -34,13 +34,15 @@ Os templates são importados inativos deliberadamente.
 
 ## O que foi validado
 
-- importação dos seis workflows em container oficial `n8nio/n8n:1.121.2`;
+- importação estrutural dos sete workflows em container oficial `n8nio/n8n:1.121.2`;
 - presença de todos os tipos de nodes utilizados;
 - compatibilidade das `typeVersion` escolhidas com o catálogo dessa versão;
 - suporte dos parâmetros usados pelos nodes Form, Form Trigger e Execute Workflow Trigger;
 - execução funcional do Core no n8n 1.121.2 contra uma API n8n real;
 - geração determinística da variante a partir dos templates `2.28.6`;
 - validação de placeholders, ausência de credenciais e padrões conhecidos de segredos.
+
+O coletor Notion utiliza HTTP Request 4.3 com credencial `notionApi` e AI Agent 2.2 com um Chat Model OpenAI, todos importáveis na variante 1.121.2. A leitura real, a sumarização e o endpoint Markdown dependem das credenciais, das permissões da integração e da versão atual das APIs; valide essa parte com uma página de teste antes do uso em produção.
 
 A validação estrutural não substitui um teste integrado com as credenciais n8n, GitHub e OpenAI do ambiente de trabalho. Antes de ativar a agenda, execute um Bootstrap de teste em branch dedicada e confirme a Maintenance manualmente.
 
