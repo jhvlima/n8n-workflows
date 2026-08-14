@@ -12,7 +12,7 @@ Para credenciais e exemplos completos de um workflow específico, consulte [Inpu
 | Formulário — `Configuração do formulário` | `requiredTag`, `projectTagPrefix`, `projectSlug`, `aiMode`, `documentationMode`, `owner`, `repository`, `branch` |
 | Notion — `Configuração Notion` | `notionRootUrl`, `maxPages`, `maxCharsPerPage`, `maxSummaryCharsPerPage`, `maxTotalChars`, `notionApiVersion` |
 | Bootstrap — `Configuração Bootstrap` | `projectSlug`, `notionRootUrl`, `documentationLayout`, `aiMode`, `owner`, `repository`, `branch`, `forceBootstrap`, `documentationMode` |
-| Maintenance — `Configuração Maintenance` | `requiredTag`, `projectTagPrefix`, `projectSlug`, `aiMode`, `owner`, `repository`, `branch`, `documentationMode` |
+| Maintenance — `Configuração Maintenance` | `requiredTag`, `projectTagPrefix`, `projectSlug`, `aiMode`, `owner`, `repository`, `baseBranch`, `publicationBranch`, `documentationMode` |
 
 ## Dicionário de campos
 
@@ -122,9 +122,18 @@ Nome do repositório de destino, sem o proprietário e sem URL. Pode ser qualque
 | --- | --- |
 | Tipo | Texto livre obrigatório |
 | Exemplo | `docs/generated` |
-| Onde aparece | Formulário, Bootstrap e Maintenance |
+| Onde aparece | Formulário e Bootstrap |
 
-A branch precisa existir antes da primeira publicação. Use o mesmo destino nos três workflows. Recomenda-se uma branch dedicada e protegida por revisão.
+A branch do Bootstrap precisa existir antes da primeira publicação. Recomenda-se uma branch dedicada e protegida por revisão.
+
+### `baseBranch` e `publicationBranch`
+
+| Campo | Padrão | Efeito na Maintenance |
+| --- | --- | --- |
+| `baseBranch` | `main` | Contém o estado aprovado usado na comparação do hash e como base quando a branch auxiliar precisa ser recriada. |
+| `publicationBranch` | `docs/generated` | Recebe os arquivos técnicos novos e origina o PR. Também é consultada para detectar revisão pendente. |
+
+Não use a branch auxiliar como `baseBranch`: isso faria a automação tratar conteúdo ainda não aprovado como fonte de verdade. Se `publicationBranch` for apagada, ela será recriada automaticamente apenas quando houver uma nova mudança publicável.
 
 ### `forceBootstrap`
 

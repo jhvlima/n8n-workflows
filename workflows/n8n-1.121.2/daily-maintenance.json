@@ -82,8 +82,14 @@
             },
             {
               "id": "b40b0f0e-1c11-4f59-a5d9-76032ae7d43b",
-              "name": "branch",
-              "value": "={{ String($json.branch ?? 'docs/generated') }}",
+              "name": "baseBranch",
+              "value": "={{ String($json.baseBranch ?? 'main') }}",
+              "type": "string"
+            },
+            {
+              "id": "60a62812-e06e-47fa-890e-f65b6a68faac",
+              "name": "publicationBranch",
+              "value": "={{ String($json.publicationBranch ?? $json.branch ?? 'docs/generated') }}",
               "type": "string"
             },
             {
@@ -146,7 +152,7 @@
     },
     {
       "id": "971a3988-6b85-4002-bf3c-ec5749d9323b",
-      "name": "Consultar project.json remoto",
+      "name": "Consultar project.json aprovado",
       "type": "n8n-nodes-base.github",
       "typeVersion": 1.1,
       "position": [
@@ -170,10 +176,41 @@
         "filePath": "={{ \"projects/\" + $json.projectSlug + \"/project.json\" }}",
         "asBinaryProperty": false,
         "additionalParameters": {
-          "reference": "={{ $(\"Configuração Maintenance\").first().json.branch }}"
+          "reference": "={{ $(\"Configuração Maintenance\").first().json.baseBranch }}"
         }
       },
       "webhookId": "9257bfcb-12c6-41b2-9cf9-d33c3aafc92f"
+    },
+    {
+      "id": "9dd3b9d7-1d06-427d-ac6e-f65a2fa17636",
+      "name": "Consultar project.json em revisão",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        1440,
+        96
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Maintenance\").first().json.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $(\"Configuração Maintenance\").first().json.repository }}",
+          "mode": "name"
+        },
+        "filePath": "={{ \"projects/\" + $(\"Loop por projeto\").item.json.projectSlug + \"/project.json\" }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $(\"Configuração Maintenance\").first().json.publicationBranch }}"
+        }
+      },
+      "webhookId": "5ee8f3ef-047d-48cb-9c69-9f9b6f53f8b2"
     },
     {
       "id": "7316c292-6b10-47f6-9ea4-75a276dc5b5f",
@@ -186,7 +223,7 @@
       ],
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const project=$('Loop por projeto').item.json;\n  const cfg=project.maintenanceContext?.config??$('Configuração Maintenance').first().json;\n  let remoteManifest=null;\n  if(typeof $json.content==='string'){\n    try{\n      const text=Buffer.from($json.content.replace(/\\s/g,''),'base64').toString('utf8');\n      remoteManifest=JSON.parse(text);\n    }catch{remoteManifest=null;}\n  }\n  const needsBootstrap=!remoteManifest?.bootstrapCompleted;\n  const changed=!needsBootstrap&&remoteManifest.functionalHash!==project.functionalHash;\n  const aiMode=String(remoteManifest?.aiMode??project.aiMode??'bootstrap');\n  return {json:{\n    ...project,\n    aiMode,\n    documentationMode:'maintenance',\n    maintenanceContext:{\n      config:cfg,\n      remoteManifest,\n      needsBootstrap,\n      changed\n    }\n  }};"
+        "jsCode": "const project=$('Loop por projeto').item.json;\nconst cfg=project.maintenanceContext?.config??$('Configuração Maintenance').first().json;\nconst decodeManifest=value=>{\n  if(typeof value?.content!=='string') return null;\n  try{\n    const text=Buffer.from(value.content.replace(/\\s/g,''),'base64').toString('utf8');\n    return JSON.parse(text);\n  }catch{return null;}\n};\nconst approvedManifest=decodeManifest($('Consultar project.json aprovado').item.json);\nconst reviewManifest=decodeManifest($json);\nconst currentHash=project.functionalHash;\nconst approvedHash=approvedManifest?.functionalHash??null;\nconst reviewHash=reviewManifest?.functionalHash??null;\nconst needsBootstrap=!approvedManifest?.bootstrapCompleted;\nconst approvedCurrent=!needsBootstrap&&approvedHash===currentHash;\nconst awaitingReview=!needsBootstrap&&!approvedCurrent&&reviewHash===currentHash;\nconst reviewConflict=!needsBootstrap&&!approvedCurrent&&Boolean(reviewManifest?.bootstrapCompleted)&&reviewHash!==approvedHash&&reviewHash!==currentHash;\nconst changed=!needsBootstrap&&!approvedCurrent&&!awaitingReview&&!reviewConflict;\nconst aiMode=String(approvedManifest?.aiMode??project.aiMode??'bootstrap');\nreturn {json:{\n  ...project,\n  aiMode,\n  documentationMode:'maintenance',\n  maintenanceContext:{\n    config:cfg,\n    remoteManifest:approvedManifest,\n    approvedManifest,\n    reviewManifest,\n    needsBootstrap,\n    approvedCurrent,\n    awaitingReview,\n    reviewConflict,\n    changed\n  }\n}};"
       }
     },
     {
@@ -233,7 +270,7 @@
         16
       ],
       "parameters": {
-        "jsCode": "const input=$input.first().json;\n  const project=Array.isArray(input.payloads)?input.payloads[0]:input;\n  const context=project.maintenanceContext??{};\n  const cfg=context.config??$('Configuração Maintenance').first().json;\n  const remote=context.remoteManifest??{};\n  const generated=JSON.parse(project.technicalFiles?.['project.json']??'{}');\n  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'})\n    .format(new Date()).replace(/-/g,'.');\n  const current=String(remote.currentVersion??'');\n  const match=current.match(new RegExp('^'+today.replace(/\\./g,'\\\\.')+'\\\\.(\\\\d+)$'));\n  const sequence=match?Number(match[1])+1:1;\n  const version=today+'.'+sequence;\n  const updatedManifest={\n    ...generated,\n    bootstrapCompleted:true,\n    sourceOfTruth:'github',\n    aiMode:String(remote.aiMode??project.aiMode??'bootstrap'),\n    documentationLayout:String(remote.documentationLayout??'legacy'),\n    documentationSchemaVersion:Number(remote.documentationSchemaVersion??1),\n    currentVersion:version,\n    previousFunctionalHash:remote.functionalHash??null,\n    lastMaintenanceAt:new Date().toISOString(),\n    reviewRequired:true\n  };\n  const technicalFiles={...(project.technicalFiles??{})};\n  delete technicalFiles['project.json'];\n  const relativeFiles={\n    ...technicalFiles,\n    'project.json':JSON.stringify(updatedManifest,null,2)\n  };\n  const files=Object.fromEntries(Object.entries(relativeFiles).map(([file,content])=>[\n    'projects/'+project.projectSlug+'/'+file,content\n  ]));\n  return [{json:{\n    owner:cfg.owner,\n    repository:cfg.repository,\n    branch:cfg.branch,\n    projectSlug:project.projectSlug,\n    version,\n    functionalHash:project.functionalHash,\n    files,\n    commitMessage:'docs('+project.projectSlug+'): maintenance '+version\n  }}];"
+        "jsCode": "const input=$input.first().json;\n  const project=Array.isArray(input.payloads)?input.payloads[0]:input;\n  const context=project.maintenanceContext??{};\n  const cfg=context.config??$('Configuração Maintenance').first().json;\n  const remote=context.remoteManifest??{};\n  const generated=JSON.parse(project.technicalFiles?.['project.json']??'{}');\n  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'})\n    .format(new Date()).replace(/-/g,'.');\n  const current=String(remote.currentVersion??'');\n  const match=current.match(new RegExp('^'+today.replace(/\\./g,'\\\\.')+'\\\\.(\\\\d+)$'));\n  const sequence=match?Number(match[1])+1:1;\n  const version=today+'.'+sequence;\n  const updatedManifest={\n    ...generated,\n    bootstrapCompleted:true,\n    sourceOfTruth:'github',\n    aiMode:String(remote.aiMode??project.aiMode??'bootstrap'),\n    documentationLayout:String(remote.documentationLayout??'legacy'),\n    documentationSchemaVersion:Number(remote.documentationSchemaVersion??1),\n    currentVersion:version,\n    previousFunctionalHash:remote.functionalHash??null,\n    lastMaintenanceAt:new Date().toISOString(),\n    reviewRequired:true\n  };\n  const technicalFiles={...(project.technicalFiles??{})};\n  delete technicalFiles['project.json'];\n  const relativeFiles={\n    ...technicalFiles,\n    'project.json':JSON.stringify(updatedManifest,null,2)\n  };\n  const files=Object.fromEntries(Object.entries(relativeFiles).map(([file,content])=>[\n    'projects/'+project.projectSlug+'/'+file,content\n  ]));\n  return [{json:{\n    owner:cfg.owner,\n    repository:cfg.repository,\n    branch:cfg.publicationBranch,\n    baseBranch:context.reviewManifest?cfg.publicationBranch:cfg.baseBranch,\n    createBranchIfMissing:true,\n    projectSlug:project.projectSlug,\n    version,\n    functionalHash:project.functionalHash,\n    files,\n    commitMessage:'docs('+project.projectSlug+'): maintenance '+version\n  }}];"
       }
     },
     {
@@ -296,7 +333,7 @@
       ],
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const context=$json.maintenanceContext??{};\n  return {json:{\n    action:context.needsBootstrap?'needs-bootstrap':'skipped',\n    projectSlug:$json.projectSlug,\n    previousHash:context.remoteManifest?.functionalHash??null,\n    currentHash:$json.functionalHash,\n    reason:context.needsBootstrap?'Execute o Bootstrap primeiro.':'Hash funcional sem alteração.'\n  }};"
+        "jsCode": "const context=$json.maintenanceContext??{};\nlet action='skipped';\nlet reason='A main já representa o estado funcional atual do n8n.';\nif(context.needsBootstrap){\n  action='needs-bootstrap';\n  reason='Execute o Bootstrap e aprove o PR na main primeiro.';\n}else if(context.awaitingReview){\n  action='awaiting-review';\n  reason='A branch auxiliar já contém o estado atual; revise e faça o merge do PR.';\n}else if(context.reviewConflict){\n  action='review-conflict';\n  reason='A branch auxiliar contém outra versão ainda não aprovada; a Maintenance não a sobrescreveu.';\n}\nreturn {json:{\n  action,\n  projectSlug:$json.projectSlug,\n  approvedHash:context.approvedManifest?.functionalHash??null,\n  reviewHash:context.reviewManifest?.functionalHash??null,\n  currentHash:$json.functionalHash,\n  baseBranch:context.config?.baseBranch,\n  publicationBranch:context.config?.publicationBranch,\n  reason\n}};"
       }
     },
     {
@@ -309,7 +346,7 @@
         -176
       ],
       "parameters": {
-        "jsCode": "const rows=$input.all().map(item=>item.json);\n  return [{json:{\n    status:'maintenance-complete',\n    checkedProjects:rows.length,\n    updated:rows.filter(row=>row.action==='updated').length,\n    skipped:rows.filter(row=>row.action==='skipped').length,\n    needsBootstrap:rows.filter(row=>row.action==='needs-bootstrap').length,\n    projects:rows,\n    reviewRequired:true\n  }}];"
+        "jsCode": "const rows=$input.all().map(item=>item.json);\nreturn [{json:{\n  status:'maintenance-complete',\n  checkedProjects:rows.length,\n  updated:rows.filter(row=>row.action==='updated').length,\n  skipped:rows.filter(row=>row.action==='skipped').length,\n  awaitingReview:rows.filter(row=>row.action==='awaiting-review').length,\n  reviewConflicts:rows.filter(row=>row.action==='review-conflict').length,\n  needsBootstrap:rows.filter(row=>row.action==='needs-bootstrap').length,\n  projects:rows,\n  reviewRequired:true\n}}];"
       }
     },
     {
@@ -322,7 +359,7 @@
         -480
       ],
       "parameters": {
-        "content": "## Maintenance — fechamento diário\n\n- Agenda: 23:50, America/Sao_Paulo.\n- Agrupa projetos por tags do Core.\n- Compara functionalHash com project.json remoto.\n- Sem mudança: não publica.\n- Com mudança: publica somente workflows/ e project.json.\n- Preserva layout, versão e contextSources do manifesto remoto.\n- Nunca relê o Notion, chama IA ou sobrescreve README.md e docs/.\n- Projetos sem Bootstrap são reportados e ignorados.\n\n**Atualizações:** [github.com/jhvlima/n8n-workflows](https://github.com/jhvlima/n8n-workflows)",
+        "content": "## Maintenance — fechamento diário\n\n- Agenda: 23:50, America/Sao_Paulo.\n- `baseBranch` (normalmente `main`) é o estado aprovado.\n- `publicationBranch` é consultada para detectar PR pendente.\n- Main atual: `skipped`.\n- Auxiliar atual: `awaiting-review`.\n- Outra versão pendente: `review-conflict`, sem sobrescrita.\n- Mudança nova: publica somente workflows/ e project.json na auxiliar.\n- Se a auxiliar não existir, o Publisher a recria a partir da main.\n- Nunca relê o Notion, chama IA ou sobrescreve README.md e docs/.\n\n**Atualizações:** [github.com/jhvlima/n8n-workflows](https://github.com/jhvlima/n8n-workflows)",
         "height": 400,
         "width": 720,
         "color": 7
@@ -330,7 +367,7 @@
     },
     {
       "parameters": {
-        "content": "## Inputs e credenciais — Maintenance\n\n### Edit Fields `Configuração Maintenance`\n- `requiredTag` e `projectTagPrefix` (livres): normalmente `docs-internal` e `project:`.\n- `projectSlug` (livre): vazio = todos os projetos; preenchido = teste direcionado.\n- `owner`, `repository`, `branch` (livres e obrigatórios): origem do `project.json` e destino técnico.\n- `aiMode` (fixo): `bootstrap`, mantido apenas como metadado. Maintenance nunca chama IA.\n- `documentationMode` (fixo): `maintenance`.\n\n### Credencial e dependências\n- `Consultar project.json remoto`: credencial **GitHub API** com leitura.\n- Selecione o Core em `Executar Core diário` e o Publisher em `Publicar Maintenance`.\n- A escrita GitHub é configurada no Publisher.\n\n### Exemplo\n`requiredTag=docs-internal`, `projectTagPrefix=project:`, `projectSlug=''`, `owner=acme`, `repository=n8n-workflows`, `branch=docs/generated`.\n\nGuia completo: `docs/inputs/daily-maintenance.md`",
+        "content": "## Inputs e credenciais — Maintenance\n\n### Edit Fields `Configuração Maintenance`\n- `requiredTag` e `projectTagPrefix` (livres): normalmente `docs-internal` e `project:`.\n- `projectSlug` (livre): vazio = todos; preenchido = teste direcionado.\n- `owner` e `repository` (livres e obrigatórios).\n- `baseBranch` (livre): estado aprovado; normalmente `main`.\n- `publicationBranch` (livre): branch auxiliar do PR; normalmente `docs/generated`.\n- `aiMode=bootstrap` e `documentationMode=maintenance` são fixos.\n\n### Credencial e dependências\n- Configure GitHub API com leitura nas duas consultas de project.json.\n- Selecione o Core e o Publisher importados.\n- O Publisher precisa de GitHub API com Contents: read and write.\n\n### Exemplo\n`owner=acme`, `repository=n8n-workflows`, `baseBranch=main`, `publicationBranch=docs/generated`.\n\nGuia completo: `docs/inputs/daily-maintenance.md`",
         "height": 680,
         "width": 900,
         "color": 7
@@ -412,14 +449,25 @@
         ],
         [
           {
-            "node": "Consultar project.json remoto",
+            "node": "Consultar project.json aprovado",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Consultar project.json remoto": {
+    "Consultar project.json aprovado": {
+      "main": [
+        [
+          {
+            "node": "Consultar project.json em revisão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar project.json em revisão": {
       "main": [
         [
           {

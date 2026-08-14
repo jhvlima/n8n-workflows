@@ -11,13 +11,14 @@ Workflow: `Maintenance - Fechamento Diário n8n`
 | `projectSlug` | Livre | Vazio fecha todos os projetos; use um slug apenas em teste direcionado. |
 | `owner` | Livre e obrigatório | Usuário ou organização GitHub. |
 | `repository` | Livre e obrigatório | Nome do repositório, sem URL. |
-| `branch` | Livre e obrigatório | Branch que contém `projects/<slug>/project.json`. |
+| `baseBranch` | Livre e obrigatório | Branch aprovada usada como fonte de verdade; normalmente `main`. |
+| `publicationBranch` | Livre e obrigatório | Branch auxiliar que receberá a atualização e originará o PR; normalmente `docs/generated`. |
 | `aiMode` | Fixo | Mantenha `bootstrap` como metadado. A Maintenance nunca chama IA. |
 | `documentationMode` | Fixo | Mantenha `maintenance`. |
 
 ## Credenciais e subworkflows
 
-- `Consultar project.json remoto`: credencial **GitHub API** com leitura.
+- `Consultar project.json aprovado` e `Consultar project.json em revisão`: credencial **GitHub API** com leitura.
 - `Executar Core diário`: selecione o Core importado.
 - `Publicar Maintenance`: selecione o Publisher importado; a credencial GitHub de escrita fica nele.
 
@@ -31,9 +32,17 @@ projectTagPrefix = project:
 projectSlug =
 owner = acme
 repository = n8n-workflows
-branch = docs/generated
+baseBranch = main
+publicationBranch = docs/generated
 aiMode = bootstrap
 documentationMode = maintenance
 ```
 
-Quando o hash muda, somente `workflows/**` e `project.json` são publicados. `README.md` e `docs/**` permanecem intocados.
+O estado atual do n8n é comparado primeiro com a `baseBranch`. A `publicationBranch` também é consultada para impedir commits duplicados ou a sobrescrita de uma revisão pendente.
+
+- Hash igual ao aprovado: `skipped`.
+- Hash já presente na branch auxiliar: `awaiting-review`.
+- Branch auxiliar com outra versão ainda não aprovada: `review-conflict`.
+- Mudança nova: publica somente `workflows/**` e `project.json` na branch auxiliar.
+
+Se a branch auxiliar tiver sido apagada, o Publisher a recria automaticamente a partir da `baseBranch` quando surgir uma mudança publicável. `README.md` e `docs/**` permanecem intocados.

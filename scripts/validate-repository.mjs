@@ -312,6 +312,30 @@ for (const file of workflowFiles) {
         && /ia|enriquecimento/i.test(node.name),
     );
     if (callsAi) errors.push(`${file}: Maintenance não pode chamar IA`);
+    const maintenanceConfig = workflow.nodes?.find(
+      (node) => node.name === 'Configuração Maintenance',
+    );
+    const maintenanceFields = maintenanceConfig?.parameters?.assignments?.assignments?.map(
+      (assignment) => assignment.name,
+    ) ?? [];
+    for (const field of ['baseBranch', 'publicationBranch']) {
+      if (!maintenanceFields.includes(field)) {
+        errors.push(`${file}: Maintenance não separa a branch aprovada da branch de publicação (${field})`);
+      }
+    }
+    for (const nodeName of ['Consultar project.json aprovado', 'Consultar project.json em revisão']) {
+      if (!workflow.nodes?.some((node) => node.name === nodeName)) {
+        errors.push(`${file}: Maintenance não consulta os dois estados GitHub (${nodeName})`);
+      }
+    }
+    const comparisonCode = workflow.nodes?.find(
+      (node) => node.name === 'Comparar hash funcional',
+    )?.parameters?.jsCode ?? '';
+    for (const state of ['approvedCurrent', 'awaitingReview', 'reviewConflict']) {
+      if (!comparisonCode.includes(state)) {
+        errors.push(`${file}: Maintenance não trata o estado ${state}`);
+      }
+    }
     const technicalPublication = workflow.nodes?.find(
       (node) => node.name === 'Preparar publicação técnica',
     )?.parameters?.jsCode ?? '';
@@ -353,11 +377,12 @@ for (const file of workflowFiles) {
     }
 
     const requiredAtomicNodes = [
-      ['Consultar referência da branch', 'GET', '/git/ref/heads/'],
+      ['Consultar referência base', 'GET', '/git/ref/heads/'],
       ['Consultar commit base', 'GET', '/git/commits/'],
       ['Criar árvore completa', 'POST', '/git/trees'],
       ['Criar commit único', 'POST', '/git/commits'],
       ['Atualizar referência da branch', 'PATCH', '/git/refs/heads/'],
+      ['Criar referência da branch', 'POST', '/git/refs'],
     ];
     for (const [nodeName, expectedMethod, urlFragment] of requiredAtomicNodes) {
       const node = workflow.nodes?.find((candidate) => candidate.name === nodeName);
@@ -391,6 +416,9 @@ for (const file of workflowFiles) {
     }
     if (!refCode.includes('force:false')) {
       errors.push(`${file}: atualização da referência precisa usar force=false`);
+    }
+    if (!prepareCode.includes('baseBranch') || !prepareCode.includes('createBranchIfMissing')) {
+      errors.push(`${file}: Publisher não implementa base separada nem recuperação de branch ausente`);
     }
     if (!summaryCode.includes('commitsCreated:result.changed?1:0')) {
       errors.push(`${file}: resumo não garante zero ou um commit por execução`);
