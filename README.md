@@ -106,7 +106,7 @@ Cada workflow importado possui uma Sticky Note com o link deste repositório par
 | Publisher | Todos os nodes HTTP da Git Data API | GitHub com `Contents: read and write` no repositório |
 | Bootstrap | `Consultar projeto existente` | GitHub com leitura |
 | Formulário | `Listar projetos já publicados` | GitHub com leitura |
-| Maintenance | `Consultar project.json remoto` | GitHub com leitura |
+| Maintenance | `Consultar project.json aprovado` e `Consultar project.json em revisão` | GitHub com leitura |
 
 No n8n `2.28.6`, mantenha o Form Trigger protegido por `n8n User Auth`. No `1.121.2`, selecione `Basic Auth` e configure uma credencial `HTTP Basic Auth`. Em Docker, a URL usada pela credencial n8n precisa ser acessível de dentro do container.
 
@@ -128,12 +128,19 @@ Os templates usam placeholders. Depois da importação, abra os nodes `Execute W
 
 ### 4. Configure o GitHub
 
-Nos Edit Fields do Formulário, Bootstrap e Maintenance, informe:
+Nos Edit Fields do Formulário e Bootstrap, informe:
 
 ```text
 owner       = usuário ou organização
 repository  = nome do repositório, sem URL
 branch      = branch já existente, por exemplo docs/generated
+```
+
+Na Maintenance, separe o estado aprovado do destino do PR:
+
+```text
+baseBranch        = main
+publicationBranch = docs/generated
 ```
 
 Mantenha os valores controlados:
@@ -147,7 +154,7 @@ forceBootstrap = false
 
 `documentationMode` é fixo em cada workflow: `form-discovery` no Formulário, `bootstrap` no Bootstrap e `maintenance` na Maintenance.
 
-Use preferencialmente uma branch dedicada e revisão por pull request.
+Use a `publicationBranch` como branch dedicada de revisão. A Maintenance compara o n8n com a `main`, detecta se a mudança já aguarda revisão na auxiliar e recria a auxiliar a partir da `main` quando ela tiver sido apagada.
 
 Consulte o [dicionário completo de configurações](docs/CONFIGURATION.md#dicionário-de-campos) para saber onde cada campo aparece, quais valores são livres ou controlados e o efeito de cada opção. Em especial, `aiMode=bootstrap` registra a política atual: IA obrigatória no Bootstrap e nenhuma IA na Maintenance.
 

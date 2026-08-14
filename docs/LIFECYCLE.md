@@ -11,7 +11,9 @@ O fluxo normal do Bootstrap e os passos para projetos novos ou em produção est
 ## Idempotência
 
 - Conteúdo idêntico não é publicado novamente.
-- Hash funcional igual faz a Maintenance registrar `skipped`.
+- Hash funcional igual ao estado aprovado da `main` faz a Maintenance registrar `skipped`.
+- Hash atual já presente na branch auxiliar registra `awaiting-review`, sem novo commit.
+- Uma versão diferente ainda pendente na branch auxiliar registra `review-conflict`, sem sobrescrita.
 - Cada chamada do Publisher cria no máximo um commit atômico.
 - A referência da branch é atualizada sem force para não sobrescrever alterações concorrentes.
 - A Maintenance nunca inclui `README.md` ou `docs/**` no payload.
@@ -29,6 +31,9 @@ O fluxo normal do Bootstrap e os passos para projetos novos ou em produção est
 | Publisher falhou antes de mover a branch | Repetir o Bootstrap; nenhum estado parcial ficou visível |
 | Projeto sem Bootstrap na Maintenance | Executar pelo Formulário; a Maintenance registra `needs-bootstrap` |
 | Maintenance falhou no Publisher | Repetir; a branch anterior foi preservada e conteúdo idêntico não cria commit |
+| Branch auxiliar foi apagada | Nenhuma ação imediata; na próxima mudança publicável o Publisher a recria a partir da `baseBranch` |
+| Maintenance registrou `awaiting-review` | Revisar e fazer merge do PR já existente; não repetir a publicação |
+| Maintenance registrou `review-conflict` | Revisar ou encerrar a mudança pendente na branch auxiliar antes de executar novamente |
 | `project.json` já existe | Não executar Bootstrap normal; o projeto já está registrado |
 
 ## Rebootstrap excepcional

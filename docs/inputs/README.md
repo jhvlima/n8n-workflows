@@ -21,7 +21,7 @@ Cada workflow possui um guia próprio com os campos livres, os valores controlad
 - **Livre**: o administrador pode escolher o valor, respeitando formato e permissões descritos.
 - **Controlado**: escolha apenas um dos valores enumerados.
 - **Fixo**: não altere; o valor faz parte do contrato entre os workflows.
-- Valores administrativos como `owner`, `repository`, `branch` e tags são definidos em nodes Edit Fields, nunca no formulário público.
+- Valores administrativos como `owner`, `repository`, `branch`, `baseBranch`, `publicationBranch` e tags são definidos em nodes Edit Fields, nunca no formulário público.
 - Os templates não contêm credenciais nem IDs reais de subworkflows. Após importar, selecione ambos na interface do n8n.
 
 O comportamento oficial é: IA obrigatória no Bootstrap e nenhuma IA na Maintenance.

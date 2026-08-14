@@ -89,7 +89,7 @@ A Maintenance não chama a IA. Depois do Bootstrap, esses documentos podem ser r
 
 O Publisher recebe exatamente um payload de publicação por execução e não conhece regras de Bootstrap ou Maintenance. Ele aceita escrita somente em `projects/**`, o que inclui o índice `projects/README.md`. A única remoção permitida na raiz é a do `PR_REVIEW.md` legado.
 
-Ele lê a referência e o commit atual da branch, cria uma nova tree baseada na tree existente, compara os SHAs e, quando há mudança, cria um único commit com todos os arquivos. A referência da branch só é movida no final e com `force=false`. Portanto, `project.json`, documentos e snapshots tornam-se visíveis juntos; a ordem dos arquivos no payload não possui mais função transacional.
+Ele lê a referência e o commit da `baseBranch` (ou da própria branch de destino por compatibilidade), cria uma nova tree, compara os SHAs e, quando há mudança, cria um único commit com todos os arquivos. A referência de destino só é movida no final e com `force=false`. Quando autorizado pelo payload e a referência estiver ausente, o Publisher cria a branch apontando para o novo commit. Portanto, `project.json`, documentos e snapshots tornam-se visíveis juntos; a ordem dos arquivos no payload não possui mais função transacional.
 
 ## Falhas e idempotência
 
@@ -99,5 +99,7 @@ Ele lê a referência e o commit atual da branch, cria uma nova tree baseada na 
 - IA falhou: a publicação do projeto é interrompida.
 - Publisher falhou antes de atualizar a referência: a branch permanece no commit anterior; objetos Git ainda não referenciados podem existir, mas nenhum arquivo parcial fica visível.
 - A branch avançou durante a execução: o update sem force falha e a execução deve ser repetida sobre a nova base.
-- Hash igual: Maintenance não chama Publisher.
+- Branch auxiliar ausente: a Maintenance pode recriá-la a partir da `main` sem force.
+- Hash igual à `main`: Maintenance não chama Publisher.
+- Hash igual somente à branch auxiliar: Maintenance reporta revisão pendente e não duplica o commit.
 - Projeto sem `project.json` concluído: Maintenance exige Bootstrap.

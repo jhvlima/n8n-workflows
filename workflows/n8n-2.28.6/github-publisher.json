@@ -16,7 +16,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const inputs=$input.all().map(item=>item.json??{});\nif(inputs.length!==1){\n  throw new Error('O Publisher aceita exatamente uma publicação por execução para garantir um único commit.');\n}\nconst publication=inputs[0];\nconst owner=String(publication.owner??'').trim();\nconst repository=String(publication.repository??'').trim();\nconst branch=String(publication.branch??'').trim();\nif(!owner||!repository||!branch) throw new Error('owner, repository e branch são obrigatórios.');\nif(branch.startsWith('refs/')||branch.startsWith('/')||branch.endsWith('/')||branch.includes('..')){\n  throw new Error('Nome de branch inválido: '+branch);\n}\nconst entries=Array.isArray(publication.files)\n  ? publication.files.map(file=>[file.path,file.content])\n  : Object.entries(publication.files??{});\nconst deletePaths=Array.isArray(publication.deletePaths)?publication.deletePaths.map(String):[];\nif(entries.length===0&&deletePaths.length===0) throw new Error('Nenhum arquivo ou remoção recebido para publicação.');\nconst paths=new Set();\nconst treeEntries=[];\nfor(const [pathValue,contentValue] of entries){\n  const filePath=String(pathValue??'').replace(/^\\/+/, '');\n  const invalidSegment=filePath.split('/').some(segment=>!segment||segment==='.'||segment==='..');\n  if(!filePath.startsWith('projects/')||invalidSegment){\n    throw new Error('Caminho de publicação inválido: '+filePath);\n  }\n  if(paths.has(filePath)) throw new Error('Caminho duplicado no mesmo commit: '+filePath);\n  if(typeof contentValue!=='string') throw new Error('Conteúdo deve ser texto: '+filePath);\n  paths.add(filePath);\n  treeEntries.push({path:filePath,mode:'100644',type:'blob',content:contentValue});\n}\nfor(const pathValue of deletePaths){\n  const filePath=String(pathValue??'').replace(/^\\/+/, '');\n  if(filePath!=='PR_REVIEW.md'){\n    throw new Error('Remoção não permitida: '+filePath+'. Somente o PR_REVIEW.md legado pode ser removido.');\n  }\n  if(paths.has(filePath)) throw new Error('Caminho duplicado no mesmo commit: '+filePath);\n  paths.add(filePath);\n  treeEntries.push({path:filePath,mode:'100644',type:'blob',sha:null});\n}\ntreeEntries.sort((a,b)=>a.path.localeCompare(b.path));\nreturn [{json:{\n  owner,\n  repository,\n  branch,\n  projectSlug:String(publication.projectSlug??'').trim(),\n  commitMessage:String(publication.commitMessage??('docs('+publication.projectSlug+'): atomic publication')),\n  fileCount:treeEntries.length,\n  deleteCount:deletePaths.length,\n  deletePaths,\n  paths:treeEntries.map(entry=>entry.path),\n  treeEntries\n}}];"
+        "jsCode": "const inputs=$input.all().map(item=>item.json??{});\nif(inputs.length!==1){\n  throw new Error('O Publisher aceita exatamente uma publicação por execução para garantir um único commit.');\n}\nconst publication=inputs[0];\nconst owner=String(publication.owner??'').trim();\nconst repository=String(publication.repository??'').trim();\nconst branch=String(publication.branch??'').trim();\nconst baseBranch=String(publication.baseBranch??branch).trim();\nconst createBranchIfMissing=Boolean(publication.createBranchIfMissing??false);\nif(!owner||!repository||!branch||!baseBranch) throw new Error('owner, repository, branch e baseBranch são obrigatórios.');\nconst invalidBranch=value=>value.startsWith('refs/')||value.startsWith('/')||value.endsWith('/')||value.includes('..');\nif(invalidBranch(branch)||invalidBranch(baseBranch)){\n  throw new Error('Nome de branch inválido: '+(invalidBranch(branch)?branch:baseBranch));\n}\nconst entries=Array.isArray(publication.files)\n  ? publication.files.map(file=>[file.path,file.content])\n  : Object.entries(publication.files??{});\nconst deletePaths=Array.isArray(publication.deletePaths)?publication.deletePaths.map(String):[];\nif(entries.length===0&&deletePaths.length===0) throw new Error('Nenhum arquivo ou remoção recebido para publicação.');\nconst paths=new Set();\nconst treeEntries=[];\nfor(const [pathValue,contentValue] of entries){\n  const filePath=String(pathValue??'').replace(/^\\/+/, '');\n  const invalidSegment=filePath.split('/').some(segment=>!segment||segment==='.'||segment==='..');\n  if(!filePath.startsWith('projects/')||invalidSegment){\n    throw new Error('Caminho de publicação inválido: '+filePath);\n  }\n  if(paths.has(filePath)) throw new Error('Caminho duplicado no mesmo commit: '+filePath);\n  if(typeof contentValue!=='string') throw new Error('Conteúdo deve ser texto: '+filePath);\n  paths.add(filePath);\n  treeEntries.push({path:filePath,mode:'100644',type:'blob',content:contentValue});\n}\nfor(const pathValue of deletePaths){\n  const filePath=String(pathValue??'').replace(/^\\/+/, '');\n  if(filePath!=='PR_REVIEW.md'){\n    throw new Error('Remoção não permitida: '+filePath+'. Somente o PR_REVIEW.md legado pode ser removido.');\n  }\n  if(paths.has(filePath)) throw new Error('Caminho duplicado no mesmo commit: '+filePath);\n  paths.add(filePath);\n  treeEntries.push({path:filePath,mode:'100644',type:'blob',sha:null});\n}\ntreeEntries.sort((a,b)=>a.path.localeCompare(b.path));\nreturn [{json:{\n  owner,\n  repository,\n  branch,\n  baseBranch,\n  createBranchIfMissing,\n  projectSlug:String(publication.projectSlug??'').trim(),\n  commitMessage:String(publication.commitMessage??('docs('+publication.projectSlug+'): atomic publication')),\n  fileCount:treeEntries.length,\n  deleteCount:deletePaths.length,\n  deletePaths,\n  paths:treeEntries.map(entry=>entry.path),\n  treeEntries\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -29,7 +29,7 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://api.github.com/repos/' + encodeURIComponent($json.owner) + '/' + encodeURIComponent($json.repository) + '/git/ref/heads/' + $json.branch.split('/').map(encodeURIComponent).join('/') }}",
+        "url": "={{ 'https://api.github.com/repos/' + encodeURIComponent($json.owner) + '/' + encodeURIComponent($json.repository) + '/git/ref/heads/' + $json.baseBranch.split('/').map(encodeURIComponent).join('/') }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "githubApi",
         "sendHeaders": true,
@@ -54,7 +54,7 @@
         80
       ],
       "id": "f877b303-9cf8-4bf6-a53c-acde46617ce5",
-      "name": "Consultar referência da branch"
+      "name": "Consultar referência base"
     },
     {
       "parameters": {
@@ -268,11 +268,13 @@
         -48
       ],
       "id": "19df01a5-a8d0-4ab8-9d97-45a8ec51f9c5",
-      "name": "Atualizar referência da branch"
+      "name": "Atualizar referência da branch",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "const context=$('Preparar atualização da referência').first().json;\nconst publishedSha=String($json.object?.sha??context.newCommitSha);\nif(publishedSha!==context.newCommitSha){\n  throw new Error('A branch não aponta para o commit recém-criado.');\n}\nreturn [{json:{\n  action:'committed',\n  changed:true,\n  atomic:true,\n  owner:context.owner,\n  repository:context.repository,\n  branch:context.branch,\n  projectSlug:context.projectSlug,\n  previousCommitSha:context.baseCommitSha,\n  commitSha:context.newCommitSha,\n  treeSha:context.newTreeSha,\n  commitMessage:context.commitMessage,\n  fileCount:context.fileCount,\n  paths:context.paths\n}}];"
+        "mode": "runOnceForEachItem",
+        "jsCode": "const context=$('Preparar atualização da referência').first().json;\nconst publishedSha=String($json.object?.sha??'');\nif(publishedSha===context.newCommitSha){\n  return {json:{...context,needsCreate:false}};\n}\nif(!context.createBranchIfMissing){\n  throw new Error('Não foi possível avançar a branch '+context.branch+'. Ela pode não existir ou ter recebido mudanças concorrentes.');\n}\nreturn {json:{\n  ...context,\n  needsCreate:true,\n  createRefRequestBody:{ref:'refs/heads/'+context.branch,sha:context.newCommitSha}\n}};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -280,12 +282,92 @@
         2080,
         -48
       ],
+      "id": "0390172d-c6a3-4bdf-8678-fd6f7145f25c",
+      "name": "Verificar atualização da referência"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "6fd1bf23-d120-4645-a64a-595c886e4d43",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ String($json.needsCreate) }}",
+              "rightValue": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2320,
+        -48
+      ],
+      "id": "b1a0ac2e-779c-416a-9355-58ea945d6d0e",
+      "name": "Branch precisa ser criada?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.github.com/repos/' + encodeURIComponent($json.owner) + '/' + encodeURIComponent($json.repository) + '/git/refs' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.createRefRequestBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2560,
+        -128
+      ],
+      "id": "706243ae-6cff-4c22-84da-222376d567f2",
+      "name": "Criar referência da branch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const context=$('Verificar atualização da referência').first().json;\nconst publishedSha=String($json.object?.sha??context.newCommitSha);\nif(publishedSha!==context.newCommitSha){\n  throw new Error('A branch não aponta para o commit recém-criado.');\n}\nreturn [{json:{\n  action:'committed',\n  changed:true,\n  atomic:true,\n  branchCreated:Boolean(context.needsCreate),\n  owner:context.owner,\n  repository:context.repository,\n  branch:context.branch,\n  baseBranch:context.baseBranch,\n  projectSlug:context.projectSlug,\n  previousCommitSha:context.baseCommitSha,\n  commitSha:context.newCommitSha,\n  treeSha:context.newTreeSha,\n  commitMessage:context.commitMessage,\n  fileCount:context.fileCount,\n  paths:context.paths\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        -48
+      ],
       "id": "cb0f974e-222b-45da-8238-57ed2338e04e",
       "name": "Registrar commit publicado"
     },
     {
       "parameters": {
-        "jsCode": "const context=$('Preparar nova árvore').first().json;\nreturn [{json:{\n  action:'skipped',\n  changed:false,\n  atomic:true,\n  owner:context.owner,\n  repository:context.repository,\n  branch:context.branch,\n  projectSlug:context.projectSlug,\n  previousCommitSha:context.baseCommitSha,\n  commitSha:context.baseCommitSha,\n  treeSha:context.baseTreeSha,\n  commitMessage:context.commitMessage,\n  fileCount:context.fileCount,\n  paths:context.paths\n}}];"
+        "jsCode": "const context=$('Preparar nova árvore').first().json;\nreturn [{json:{\n  action:'skipped',\n  changed:false,\n  atomic:true,\n  branchCreated:false,\n  owner:context.owner,\n  repository:context.repository,\n  branch:context.branch,\n  baseBranch:context.baseBranch,\n  projectSlug:context.projectSlug,\n  previousCommitSha:context.baseCommitSha,\n  commitSha:context.baseCommitSha,\n  treeSha:context.baseTreeSha,\n  commitMessage:context.commitMessage,\n  fileCount:context.fileCount,\n  paths:context.paths\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -298,7 +380,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const result=$input.first().json;\nreturn [{json:{\n  status:result.changed?'published':'unchanged',\n  repository:result.owner+'/'+result.repository,\n  branch:result.branch,\n  projectSlug:result.projectSlug,\n  atomic:true,\n  commitsCreated:result.changed?1:0,\n  changed:result.changed,\n  commitSha:result.commitSha,\n  previousCommitSha:result.previousCommitSha,\n  treeSha:result.treeSha,\n  commitMessage:result.commitMessage,\n  fileCount:result.fileCount,\n  paths:result.paths,\n  files:result.paths.map(path=>({path,action:result.changed?'committed':'skipped'})),\n  reviewRequired:true\n}}];"
+        "jsCode": "const result=$input.first().json;\nreturn [{json:{\n  status:result.changed?'published':'unchanged',\n  repository:result.owner+'/'+result.repository,\n  branch:result.branch,\n  baseBranch:result.baseBranch??result.branch,\n  branchCreated:Boolean(result.branchCreated),\n  projectSlug:result.projectSlug,\n  atomic:true,\n  commitsCreated:result.changed?1:0,\n  changed:result.changed,\n  commitSha:result.commitSha,\n  previousCommitSha:result.previousCommitSha,\n  treeSha:result.treeSha,\n  commitMessage:result.commitMessage,\n  fileCount:result.fileCount,\n  paths:result.paths,\n  files:result.paths.map(path=>({path,action:result.changed?'committed':'skipped'})),\n  reviewRequired:true\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -311,7 +393,7 @@
     },
     {
       "parameters": {
-        "content": "## Publisher atômico\n\n- Recebe exatamente uma publicação por execução.\n- Valida todos os caminhos antes de chamar o GitHub.\n- Permite escrever somente projects/**, incluindo projects/README.md.\n- Permite remover somente o PR_REVIEW.md legado.\n- Cria uma tree Git sobre a tree atual da branch.\n- Se a tree for idêntica, encerra sem criar commit.\n- Se houver mudança, cria um único commit com escritas e remoção.\n- Move a referência somente por fast-forward (force=false).\n- Uma falha antes da atualização não publica estado parcial.\n\n**Atualizações:** [github.com/jhvlima/n8n-workflows](https://github.com/jhvlima/n8n-workflows)",
+        "content": "## Publisher atômico\n\n- Recebe exatamente uma publicação por execução.\n- Valida todos os caminhos antes de chamar o GitHub.\n- Permite escrever somente projects/**.\n- Cria uma tree Git sobre `baseBranch` ou sobre a própria branch.\n- Se houver mudança, cria um único commit.\n- Move a referência somente por fast-forward (`force=false`).\n- Com `createBranchIfMissing=true`, cria a referência ausente apontando para o novo commit.\n- Nunca substitui uma branch concorrente já existente.\n- Uma falha antes da atualização não publica estado parcial.\n\n**Atualizações:** [github.com/jhvlima/n8n-workflows](https://github.com/jhvlima/n8n-workflows)",
         "height": 440,
         "width": 760,
         "color": 4
@@ -327,7 +409,7 @@
     },
     {
       "parameters": {
-        "content": "## Inputs e credenciais — Publisher\n\nNão há node de configuração: este subworkflow publica exatamente um payload.\n\n### Campos\n- owner, repository, branch: destino GitHub obrigatório.\n- projectSlug: projeto relacionado à execução.\n- files: somente projects/**, incluindo projects/README.md.\n- deletePaths: opcional; aceita somente PR_REVIEW.md legado na raiz para migração.\n- commitMessage: mensagem única do commit.\n\n### Credencial\nUse a mesma credencial GitHub API em todos os nodes HTTP. O token precisa de Contents: read and write.\n\n### Concorrência\nA referência usa force=false. Se outra execução avançar a branch, repita a execução.\n\n### Resultado\ncommitsCreated é 1 quando houve mudança e 0 quando a tree já era idêntica.\n\nGuia completo: docs/inputs/github-publisher.md",
+        "content": "## Inputs e credenciais — Publisher\n\nNão há node de configuração: publica exatamente um payload.\n\n### Campos\n- `owner`, `repository`, `branch`: destino obrigatório.\n- `baseBranch`: base opcional; por padrão usa `branch`.\n- `createBranchIfMissing`: permite criar `branch` ausente.\n- `projectSlug`, `files`, `commitMessage`: conteúdo da publicação.\n- `deletePaths`: aceita somente PR_REVIEW.md legado.\n\n### Credencial\nUse a mesma GitHub API em todos os nodes HTTP, com Contents: read and write.\n\n### Segurança\nO update usa `force=false`. O fallback cria apenas referência inexistente; nunca substitui concorrência.\n\n### Resultado\n`commitsCreated` é 1 com mudança e 0 sem mudança. `branchCreated` informa recuperação da branch.\n\nGuia completo: docs/inputs/github-publisher.md",
         "height": 720,
         "width": 880,
         "color": 4
@@ -358,14 +440,14 @@
       "main": [
         [
           {
-            "node": "Consultar referência da branch",
+            "node": "Consultar referência base",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Consultar referência da branch": {
+    "Consultar referência base": {
       "main": [
         [
           {
@@ -472,6 +554,46 @@
       ]
     },
     "Atualizar referência da branch": {
+      "main": [
+        [
+          {
+            "node": "Verificar atualização da referência",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar atualização da referência": {
+      "main": [
+        [
+          {
+            "node": "Branch precisa ser criada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Branch precisa ser criada?": {
+      "main": [
+        [
+          {
+            "node": "Criar referência da branch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar commit publicado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar referência da branch": {
       "main": [
         [
           {

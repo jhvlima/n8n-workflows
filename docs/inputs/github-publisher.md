@@ -10,7 +10,9 @@ O Publisher não possui Edit Fields. Ele é um subworkflow genérico que recebe 
 | --- | --- | --- |
 | `owner` | Livre e obrigatório | Usuário ou organização do GitHub, sem URL. |
 | `repository` | Livre e obrigatório | Nome do repositório, sem proprietário e sem URL. |
-| `branch` | Livre e obrigatório | Branch já existente. |
+| `branch` | Livre e obrigatório | Branch de destino. |
+| `baseBranch` | Opcional | Branch usada como base do commit; por padrão usa a própria `branch`. |
+| `createBranchIfMissing` | Opcional, booleano | Quando `true`, cria `branch` se a atualização falhar porque ela não existe. Use somente com uma `baseBranch` confiável. |
 | `projectSlug` | Livre e obrigatório | Slug do projeto correspondente aos caminhos. |
 | `files` | Obrigatório | Objeto `{ "caminho": "conteúdo" }` ou a lista aceita pelo node de expansão. |
 | `deletePaths` | Opcional e controlado | Aceita somente `PR_REVIEW.md`, usado para a migração do roteiro para `projects/README.md`. |
@@ -18,7 +20,7 @@ O Publisher não possui Edit Fields. Ele é um subworkflow genérico que recebe 
 
 Todo caminho de escrita precisa começar por `projects/`. Nenhum caminho pode conter `..`. Isso permite criar `projects/README.md` sem liberar escrita arbitrária na raiz. A única remoção permitida na raiz é `PR_REVIEW.md`.
 
-O Publisher cria uma tree baseada na tree atual da branch. Se o SHA não mudar, encerra com `commitsCreated=0`. Se houver qualquer alteração, cria uma única tree, um único commit e atualiza a branch com `force=false`, retornando `commitsCreated=1`. A execução falha se receber mais de um payload; Bootstrap e Maintenance já chamam o subworkflow uma vez por projeto.
+O Publisher cria uma tree baseada na `baseBranch` — ou na própria `branch` quando `baseBranch` não for informada. Se o SHA não mudar, encerra com `commitsCreated=0`. Se houver alteração, cria uma única tree e um único commit. Primeiro tenta avançar a branch de destino com `force=false`; quando `createBranchIfMissing=true` e a referência não existe, cria a branch apontando para esse commit. A execução falha se receber mais de um payload.
 
 ## Credencial
 
@@ -26,7 +28,7 @@ Use a mesma credencial **GitHub API** em todos os nodes HTTP do Publisher. Um fi
 
 ## Concorrência e recuperação
 
-O fluxo lê o commit base antes de criar a nova tree. Se outra execução ou uma pessoa avançar a branch antes da última etapa, o GitHub rejeita a atualização por não ser fast-forward. Repita a execução; o Publisher nunca usa force e não sobrescreve o trabalho concorrente. Uma falha antes do update final pode deixar objetos Git sem referência, mas não publica arquivos parciais na branch.
+O fluxo lê o commit base antes de criar a nova tree. Se outra execução ou uma pessoa avançar a branch antes da última etapa, o GitHub rejeita a atualização por não ser fast-forward. O fallback de criação também falha se a referência já existir, portanto ele não substitui trabalho concorrente. Repita a execução depois de revisar a branch. O Publisher nunca usa force.
 
 ## Exemplo
 
@@ -35,6 +37,8 @@ O fluxo lê o commit base antes de criar a nova tree. Se outra execução ou uma
   "owner": "acme",
   "repository": "n8n-workflows",
   "branch": "docs/generated",
+  "baseBranch": "main",
+  "createBranchIfMissing": true,
   "projectSlug": "carteira-invest",
   "commitMessage": "docs(carteira-invest): bootstrap documentation",
   "files": {
