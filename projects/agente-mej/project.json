@@ -5,8 +5,8 @@
   "sourceOfTruth": "github",
   "bootstrapCompleted": true,
   "aiMode": "bootstrap",
-  "currentVersion": "2026.07.21.1",
-  "functionalHash": "2320a6964f03866c",
+  "currentVersion": "2026.10.30.1",
+  "functionalHash": "2282bf61e0825e33",
   "workflows": [
     {
       "workflowId": "zwED162zMkR8TUfY",
@@ -18,14 +18,38 @@
         "docs-internal",
         "project:agente-MEJ"
       ],
-      "nodeCount": 20,
-      "functionalHash": "ec018f504397c112",
-      "sourceUpdatedAt": "2026-07-12T00:35:31.027Z"
+      "nodeCount": 17,
+      "functionalHash": "0601ef3607161c68",
+      "sourceUpdatedAt": "2026-08-27T12:55:00.482Z"
+    },
+    {
+      "workflowId": "ry8VKA0Nsax8HG35",
+      "workflowSlug": "rag",
+      "componentId": "workflow.rag",
+      "role": "workflow",
+      "name": "RAG",
+      "tags": [
+        "docs-internal",
+        "project:agente-MEJ"
+      ],
+      "nodeCount": 11,
+      "functionalHash": "dad550bc21c1c95a",
+      "sourceUpdatedAt": "2026-08-24T22:02:49.150Z"
     }
   ],
-  "dependencies": [],
+  "dependencies": [
+    {
+      "source": "workflow.mvp",
+      "relation": "usesTool",
+      "viaNode": "Consultar EJ na tabela",
+      "target": null,
+      "targetWorkflowId": "uLom4ly2iv801xpu",
+      "external": true
+    }
+  ],
   "reviewRequired": true,
   "documentationLayout": "separated",
   "documentationSchemaVersion": 2,
-  "bootstrapAt": "2026-07-21T22:55:36.933Z"
+  "previousFunctionalHash": "2320a6964f03866c",
+  "lastMaintenanceAt": "2026-10-30T05:22:22.862Z"
 }

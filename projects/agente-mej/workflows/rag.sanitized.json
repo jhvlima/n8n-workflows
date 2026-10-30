@@ -1,0 +1,349 @@
+{
+  "name": "RAG",
+  "nodes": [
+    {
+      "id": "9ef2d150-d9b9-46a6-ab89-5b665b662e0b",
+      "name": "Executar reindexacao",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        240
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "0e69acde-930a-42c7-b1e5-512137952eb3",
+      "name": "Search docs files",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -280,
+        160
+      ],
+      "parameters": {
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "folderId": "{{FOLDERID}}"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID",
+          "name": "GOOGLEDRIVEOAUTH2API_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "074df105-22f8-4215-8bd4-a627feaf9626",
+      "name": "Download docs file",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -40,
+        160
+      ],
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID",
+          "name": "GOOGLEDRIVEOAUTH2API_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "0000fbc5-ecf8-460f-b6c0-bd01ad93038d",
+      "name": "Identificar documento Drive",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        160
+      ],
+      "parameters": {
+        "jsCode": "return $input.all().map(item => ({\n  json: {\n    ...item.json,\n    source_type: 'google_drive_document',\n    source_file: item.binary?.data?.fileName || item.json.name || 'documento_drive',\n    source_url: item.json.webViewLink || ''\n  },\n  binary: item.binary\n}));"
+      }
+    },
+    {
+      "id": "57975c50-77cb-4c5f-8368-8946807711af",
+      "name": "Search pdf files",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -280,
+        360
+      ],
+      "parameters": {
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "folderId": "{{FOLDERID}}"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID",
+          "name": "GOOGLEDRIVEOAUTH2API_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "70dd9c73-5dde-4905-aa5e-adbf9bf35b09",
+      "name": "Download pdf file",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -40,
+        360
+      ],
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLEDRIVEOAUTH2API_CREDENTIAL_ID",
+          "name": "GOOGLEDRIVEOAUTH2API_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "0f063e8e-4f5d-49bb-bd36-ac3b0e784aca",
+      "name": "Identificar PDF Drive",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        360
+      ],
+      "parameters": {
+        "jsCode": "return $input.all().map(item => ({\n  json: {\n    ...item.json,\n    source_type: 'google_drive_pdf',\n    source_file: item.binary?.data?.fileName || item.json.name || 'documento.pdf',\n    source_url: item.json.webViewLink || ''\n  },\n  binary: item.binary\n}));"
+      }
+    },
+    {
+      "id": "7dda908f-e350-4047-8e12-4bf7a5e74dd7",
+      "name": "Indexar documentos no Qdrant",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.1,
+      "position": [
+        520,
+        240
+      ],
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "mode": "id",
+          "value": "agente_mej_drive"
+        },
+        "embeddingBatchSize": 50,
+        "options": {}
+      },
+      "credentials": {
+        "qdrantApi": {
+          "id": "QDRANTAPI_CREDENTIAL_ID",
+          "name": "QDRANTAPI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "02eec7af-c3e8-4302-894f-d2b7a35f8f5a",
+      "name": "Embeddings OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        480
+      ],
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAIAPI_CREDENTIAL_ID",
+          "name": "OPENAIAPI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "id": "4c22ec80-bddd-4606-92bf-972a36a9e44c",
+      "name": "Carregar arquivo e metadados",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        480
+      ],
+      "parameters": {
+        "dataType": "binary",
+        "binaryMode": "allInputData",
+        "loader": "auto",
+        "textSplittingMode": "simple",
+        "options": {
+          "splitPages": true,
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "source_type",
+                "value": "={{ $json.source_type }}"
+              },
+              {
+                "name": "file_name",
+                "value": "={{ $json.source_file }}"
+              },
+              {
+                "name": "source_url",
+                "value": "={{ $json.source_url }}"
+              },
+              {
+                "name": "indexed_from",
+                "value": "Google Drive"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "822f583c-f065-4e60-86a7-7b55efd324c0",
+      "name": "Nota de operacao",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -80
+      ],
+      "parameters": {
+        "content": "# RAG do Google Drive\n\nExecute manualmente apos alterar os documentos. Antes de uma reindexacao completa, apague somente a collection `agente_mej_drive` no Qdrant para evitar chunks duplicados. A planilha de EJs fica fora do RAG: ela e consultada pela Data Table.",
+        "height": 220,
+        "width": 1040
+      }
+    }
+  ],
+  "connections": {
+    "Executar reindexacao": {
+      "main": [
+        [
+          {
+            "node": "Search docs files",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search pdf files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search docs files": {
+      "main": [
+        [
+          {
+            "node": "Download docs file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download docs file": {
+      "main": [
+        [
+          {
+            "node": "Identificar documento Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identificar documento Drive": {
+      "main": [
+        [
+          {
+            "node": "Indexar documentos no Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search pdf files": {
+      "main": [
+        [
+          {
+            "node": "Download pdf file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download pdf file": {
+      "main": [
+        [
+          {
+            "node": "Identificar PDF Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identificar PDF Drive": {
+      "main": [
+        [
+          {
+            "node": "Indexar documentos no Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Indexar documentos no Qdrant",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carregar arquivo e metadados": {
+      "ai_document": [
+        [
+          {
+            "node": "Indexar documentos no Qdrant",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
